@@ -9,7 +9,8 @@ pub mod my_first_anchor_project {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let name = "Nhat";
         let age = 23;
-
+        let abcxyz = "abcxyz";
+        
         msg!("My name is {}", name);
         msg!("I'm {} years old", age);
         msg!("This is my first anchor project!");
