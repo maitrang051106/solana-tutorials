@@ -1,17 +1,17 @@
 [toolchain]
 
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
 [programs.localnet]
-my_first_anchor_project = "GDGNBNAhHGmMKcxVxXBTTJ8xytmdjNuFWsr2igqhck27"
+my_first_anchor_project = "5wbQm8iyMSfFoqvHfpoJ51AWKLfu8fdYkCfB1RTn66sp"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "/Users/nhatbui97/.config/solana/id.json"
 
 [scripts]
