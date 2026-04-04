@@ -1,10 +1,10 @@
 # Phần Ba - Địa chỉ Chương trình Được Lấy (PDA)
 
-Bây giờ bạn đã thoải mái viết các chương trình Solana cơ bản, đã đến lúc giới thiệu một trong những khái niệm quan trọng nhất trong phát triển Solana — Program Derived Addresses (PDA). Các tài khoản đặc biệt này là chìa khóa để xây dựng các chương trình an toàn, có trạng thái có thể lưu trữ dữ liệu người dùng, quản lý kho tiền, kiểm soát quyền, v.v.
+Bây giờ bạn đã thoải mái viết các chương trình Solana cơ bản, đã đến lúc giới thiệu một trong những khái niệm quan trọng nhất trong phát triển Solana — Program Derived Addresses (PDA). Các tài khoản đặc biệt này là chìa khóa để xây dựng các chương trình an toàn, có trạng thái có thể lưu trữ dữ liệu người dùng, quản lý Vault, kiểm soát quyền, v.v.
 
 ### Trong phần này, bạn sẽ:
 ✅ Hiểu PDA là gì và có thể hoạt động như thế nào  
-✅ Khởi tạo các tài khoản bằng các PDA với hạt giống và bump  
+✅ Khởi tạo các tài khoản bằng các PDA với seeds và bump  
 ✅ Tìm hiểu cách lấy PDA trong Anchor TS Client.  
 ✅ Hoàn thành ví dụ thực tế đầu tiên: ứng dụng Ngân hàng  
 
@@ -30,7 +30,7 @@ PDA là:
 🧠 *Xác định được* — chúng được tạo ra bằng cách sử dụng các đầu vào cố định (gọi là `seeds`) cộng với ID chương trình của bạn  
 ✍️ *Có khả năng ký giao dịch* — nhưng chỉ bằng cách sử dụng `invoke_signed()` với `seeds` của PDA bên trong chương trình của bạn
 
-In our bank program, we use two PDAs to store data in `state.rs`:
+Trong chương trình ngân hàng của chúng tôi, chúng tôi sử dụng hai PDA để lưu trữ dữ liệu trong `state.rs`:
 ```rust
 #[account]
 #[derive(Default)]
@@ -47,20 +47,20 @@ pub struct UserReserve {
 }
 ```
 
-- `BankInfo` is a global PDA that stores the program’s state: who the `authority` is, whether the program `is_paused`, and the Bank Vault's `bump` value.
-- `UserReserve` is a user-specific PDA that tracks how much SOL each user has deposited.
+- `BankInfo` là một PDA toàn cầu lưu trữ trạng thái của chương trình: người `authority`, và giá trị `bump` của Bank Vault.
+- `UserReserve` là một PDA dành riêng cho người dùng để theo dõi số SOL mà mỗi người dùng đã gửi.
 
-These PDAs are derived using seeds and something called a bump. But what exactly is a bump — and why do we store it?
+Các PDA này được lấy đơn định bằng cách sử dụng các seeds và thứ gọi là bump. Nhưng bump chính xác là gì — và tại sao chúng ta lưu trữ nó?
 
-When generating a PDA, Solana requires that the derived address does not lie on the ed25519 curve (since otherwise someone could potentially find a private key for it). However, not every seed combination produces a valid off-curve address.  
+Khi tạo PDA, Solana yêu cầu rằng địa chỉ được lấy không nằm trên đường cong ed25519 (vì nếu không, ai đó có thể tìm thấy khóa riêng cho nó). Tuy nhiên, không phải mọi kết hợp seed đều tạo ra một địa chỉ off-curve hợp lệ.  
 
-To fix this, they add a small number — the bump (an 8-bit unsigned integer from 0–255) — which is adjusted automatically during PDA creation to ensure a valid address. Anchor handles the bump calculation automatically when you initialize the PDA. But if your program needs to regenerate or sign on behalf of that PDA, you must store the bump so you can reproduce the seeds or the exact address.  
+Để khắc phục điều này, họ thêm một số nhỏ — bump (một số nguyên không dấu 8 bit từ 0–255) — được điều chỉnh tự động trong quá trình tạo PDA để đảm bảo có một địa chỉ hợp lệ. Anchor xử lý tính toán bump một cách tự động khi bạn khởi tạo PDA. Nhưng nếu chương trình của bạn cần tái tạo hoặc ký thay mặt PDA đó, bạn phải lưu trữ bump để có thể tái tạo các hạt giống hoặc địa chỉ chính xác.  
 
-👉 In our example, we store the bump in `BankInfo` because the program will need the Bank Vault PDA to sign instructions later.
+👉 Trong ví dụ của chúng tôi, chúng tôi lưu trữ bump trong `BankInfo` vì chương trình sẽ cần PDA Bank Vault để ký các lệnh sau đó.
 
-### 2. Initializing a PDA
-Now that we understand what a PDA is, let’s walk through how to create and initialize a PDA in Anchor.  
-In our bank app, we initialize the global `BankInfo` PDA when the program is first set up. Here’s how it looks in `instructions/initialize.rs`:
+### 2. Khởi tạo một PDA
+Bây giờ chúng ta đã hiểu PDA là gì, hãy bước qua cách tạo và khởi tạo một PDA trong Anchor.
+Trong ứng dụng ngân hàng của chúng tôi, chúng tôi khởi tạo PDA `BankInfo` toàn cầu khi chương trình được thiết lập lần đầu tiên. Đây là cách nó trông trong `instructions/initialize.rs`:
 ```rust
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -75,14 +75,14 @@ pub struct Initialize<'info> {
 }
 ```
 
-##### 🧪Let’s break it down:
-- `init`: Tells Anchor to create a new PDA account. You can only initialize a PDA once — if it already exists, the transaction will fail and revert. If you ever need to reuse the same PDA address, you'll first have to close the existing account.
-- `seeds` = [...]: These are the values used to deterministically derive the PDA address. You can include multiple seed values depending on your use case. In this example, we’re initializing a single global state account, so we only use one static seed: `BANK_INFO_SEED`.
-- `bump`: Instructs Anchor to automatically calculate a valid bump value for this seed combination (we already covered bumps in the previous section 😄).
-- `payer`: Creating a PDA requires storage space, and on Solana, storage comes with rent costs. The payer field specifies which signer will cover the cost of account creation — in this case, the `authority`.
-- `space`: How much space (in bytes) to allocate for the account. The more space the PDA needs, the more cost payer have to pay.  
+##### 🧪 Hãy phân tích chi tiết:
+- `init`: Yêu cầu Anchor tạo một tài khoản PDA mới. Bạn chỉ có thể khởi tạo một PDA một lần — nếu nó đã tồn tại, giao dịch sẽ thất bại và bị hoàn nguyên. Nếu bạn cần sử dụng lại cùng một địa chỉ PDA, trước tiên bạn phải đóng tài khoản hiện có.
+- `seeds` = [...]: Đây là các giá trị được sử dụng để lấy đơn định địa chỉ PDA. Bạn có thể bao gồm nhiều giá trị seed tùy thuộc vào trường hợp sử dụng của bạn. Trong ví dụ này, chúng tôi khởi tạo một tài khoản trạng thái toàn cầu duy nhất, vì vậy chúng tôi chỉ sử dụng một seed tĩnh: `BANK_INFO_SEED`.
+- `bump`: Yêu cầu Anchor tự động tính toán một giá trị bump hợp lệ cho kết hợp seed này (chúng tôi đã đề cập đến bumps trong phần trước 😄),
+- `payer`: Tạo PDA yêu cầu không gian lưu trữ, và trên Solana, lưu trữ có chi phí tiền thuê. Trường payer chỉ định người ký sẽ trả chi phí tạo tài khoản — trong trường hợp này, là `authority`.
+- `space`: Có bao nhiêu không gian (tính bằng byte) để cấp phát cho tài khoản. Càng nhiều không gian PDA cần, chi phí người trả phải trả càng cao.  
 
-The Bank Vault is initialized right after the `BankInfo` account, but there are a few key differences worth noting:
+Bank Vault được khởi tạo ngay sau tài khoản `BankInfo`, nhưng có một số khác biệt chính đáng lưu tâm:
 ```rust
     #[account(
         init,
@@ -94,15 +94,15 @@ The Bank Vault is initialized right after the `BankInfo` account, but there are 
     )]
     pub bank_vault: UncheckedAccount<'info>,
 ```
-##### 🧩 What’s different here?
-+ *No data storage*: Unlike `BankInfo`, this PDA doesn’t store any data — hence `space = 0`, and we don’t define a struct for it.
-+ *System-owned*: The account is created with `owner = system_program::ID`, meaning it’s owned by the System Program, not your Anchor program. This might seem unusual at first, but it's intentional.
-+ *Why create this PDA?*  
-This vault acts as a centralized fund holder for your entire app. Since it's a PDA derived using your program ID and a known seed, your program can still sign for it and control its SOL balance.
+##### 🧩 Điều gì khác biệt ở đây?
++ *Không có lưu trữ dữ liệu*: Khác với `BankInfo`, PDA này không lưu trữ bất kỳ dữ liệu nào — do đó `space = 0`, và chúng tôi không định nghĩa một cấu trúc cho nó.
++ *Quản lý bởi Chương trình Hệ thống*: Tài khoản được tạo bằng `owner = system_program::ID`, có nghĩa là nó được quản lý bởi Chương trình Hệ thống, chẺ phải chương trình Anchor của bạn. Điều này có vẽ lạ nhương là có ý đị nhược khi bắt đầu.
++ *Tại sao tạo PDA này?*  
+Vault này hoạt động như một đơn vị giữ quỹ tập trung cho toàn bộ ứng dụng của bạn. Vì đó là một PDA được lấy từ ID chương trình của bạn và một seed được biết, chương trình của bạn vẫn có thể ký cho nó và kiểm soát số dư SOL của nó.
 
-**⚠️ Important Note**: The reason we use a System Program-owned PDA is because only accounts owned by the System Program can participate in native SOL transfers. When transferring SOL using the transfer instruction, both the sender and receiver must be system-owned accounts. That’s why we structure the vault this way — to serve as a secure, program-controlled SOL pool that users can send funds to or withdraw from. We’ll dive deeper into how this works when we implement the actual SOL transfer logic in the next section.  
+**⚠️ Ghi chú Quan trọng**: Lý do chúng tôi sử dụng PDA được sở hữu bởi Chương trình Hệ thống là vì chỉ những tài khoản được sở hữu bởi Chương trình Hệ thống mới có thể tham gia vào các chuyển SOL gốc. Khi chuyển SOL bằng lệnh transfer, cả người gửi và người nhận đều phải là những tài khoản được sở hữu bởi hệ thống. Đó là lý do tại sao chúng tôi cấu trúc Vault theo cách này — để đóng vai trò là một nhóm SOL an toàn, được kiểm soát bởi chương trình mà những người dùng có thể gửi quỹ hoặc rút quỹ từ đó. Chúng tôi sẽ tìm hiểu sâu hơn về cách hoạt động của nó khi chúng tôi triển khai logic chuyển SOL thực tế trong phần tiếp theo.
 
-Now that both PDAs are created, let’s move on to the process function where we initialize the fields of our `BankInfo` account:
+Bây giờ cả hai PDA đều được tạo, hãy chuyển sang hàm process nơi chúng ta khởi tạo các trường của tài khoản `BankInfo` của chúng ta:
 ```rust
 pub fn process(ctx: Context<Initialize>) -> Result<()> {
     let bank_info = &mut ctx.accounts.bank_info;
@@ -115,14 +115,14 @@ pub fn process(ctx: Context<Initialize>) -> Result<()> {
     Ok(())
 }
 ```
-Here we’re:
-- Saving the authority’s public key
-- Setting is_paused to false by default
-- Storing the bump value for future PDA sign and re-derivation
+Ở đây chúng tôi đang:
+- Lưu khóa công khai của cơ quan cấp quyền
+- Đặt is_paused thành false theo mặc định
+- Lưu trữ giá trị bump cho ký và tái Derive PDA trong tương lai
 
-That wraps up the `Initialize` instruction.  
+Điều đó kết thúc hướng dẫn `Initialize`.
 
-Now, let’s take a look at how we create user-specific PDA accounts — specifically the `UserReserve` — which is handled in the `instructions/deposit.rs` file:
+Bây giờ, hãy xem xét cách chúng tôi tạo các tài khoản PDA dành riêng cho người dùng — cụ thể là `UserReserve` — được xử lý trong tệp `instructions/deposit.rs`:
 ```rust
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -136,11 +136,11 @@ pub struct Deposit<'info> {
     pub user_reserve: Box<Account<'info, UserReserve>>,
 }
 ```
-At first glance, this looks similar to how we initialized `BankInfo` right? But there are some key differences:
-- `init_if_needed`: This directive checks if the PDA already exists. If it doesn’t, Anchor will automatically create it; if it does, the existing PDA will be loaded mutably. This is perfect for an instruction like `Deposit`, which might be called many times by the same user - no need to write extra logic to check if the account exists before using it.
-- `seeds`: This time, we’re using two seeds - a constant seed `USER_RESERVE_SEED` and the user’s public key `user.key().as_ref()` (converted to `&[u8]`). This pattern ensures that each user gets their own unique PDA — so no two users share the same UserReserve account. It also means each user can only have one UserReserve PDA derived in this way, which helps with consistency and security.
+Thoạt nhìn, điều này trông giống với cách chúng tôi khởi tạo `BankInfo` phải không? Nhưng có một số sự khác biệt chủ chot:
+- `init_if_needed`: Chỉ thị này kiểm tra xem PDA đã tồn tại hay chưa. Nếu nó không tồn tại, Anchor sẽ tự động tạo nó; nếu nó tồn tại, PDA hiện có sẽ được tải một cách có thể thay đổi. Điều này hoàn hảo cho một lệnh như `Deposit`, có thể được gọi nhiều lần bởi cùng một người dùng - không cần phải viết logic bổ sung để kiểm tra xem tài khoản có tồn tại hay không trước khi sử dụng nó.
+- `seeds`: Lần này, chúng tôi sử dụng hai seeds - seed không đổi `USER_RESERVE_SEED` và khóa công khai của người dùng `user.key().as_ref()` (được chuyển đổi thành `&[u8]`). Mẫu này đảm bảo rằng mỗi người dùng nhận được PDA duy nhất của riêng họ — vì vậy không có hai người dùng nào chia sẻ cùng một tài khoản UserReserve. Nó cũng có nghĩa là mỗi người dùng chỉ có thể có một PDA UserReserve được lấy theo cách này, điều này giúp với tính nhất quán và bảo mật.
 
-Then, we handle the deposit logic in the `process` function like this:
+Sau đó, chúng tôi xử lý logic gửi trong hàm `process` như thế này:
 ```rust
 pub fn process(ctx: Context<Deposit>, deposit_amount: u64) -> Result<()> {
     if ctx.accounts.bank_info.is_paused {
@@ -162,16 +162,17 @@ pub fn process(ctx: Context<Deposit>, deposit_amount: u64) -> Result<()> {
 }
 ```
 
-In this function, before allowing any deposits, the program first checks the status of `BankInfo`:
+Trong hàm này, trước khi cho phép bất kỳ khoản gửi nào, chương trình trước tiên kiểm tra trạng thái của `BankInfo`:
 ```rust
 if ctx.accounts.bank_info.is_paused {
     return Err(BankAppError::BankAppPaused.into());
 }
 ```
-If the bank is paused (perhaps due to an emergency or upgrade), the transaction is rejected with an appropriate error.  
+Nếu ngân hàng bị tạm dừng (có thể do tình huống khẩn cấp hoặc nâng cấp), giao dịch sẽ bị từ chối với thông báo lỗi thích hợp.
 
-We then transfer SOL from the user to the `BankInfo` PDA — which acts as a global vault that holds all deposited funds.  
-The actual transfer is handled using a helper function defined in `transfer_helper.rs`:
+Chúng tôi sau đó chuyển SOL từ người dùng đến PDA `BankInfo` — hoạt động như một Vault toàn cầu lưu giữ tất cả các quỹ được ký gửi.
+
+Quá trình chuyển thực tế được xử lý bằng một hàm trợ giúp được xác định trong `transfer_helper.rs`:
 ```rust
 //  transfer SOL from user
 pub fn sol_transfer_from_user<'info>(
@@ -192,29 +193,33 @@ pub fn sol_transfer_from_user<'info>(
     Ok(())
 }
 ```
-Since the user is the signer in this case, we can simply use `invoke()` to perform the transfer.  
-Later, when we implement withdrawals, the program will need to sign on behalf of the Bank Vault PDA — and for that, we’ll use `invoke_signed()`.  
+Vì người dùng là người ký trong trường hợp này, chúng tôi có thể đơn giản sử dụng `invoke()` để thực hiện quá trình chuyển nhượng.
 
-Finally, we update the user’s UserReserve PDA to reflect the new deposited amount:
+Sau đó, khi chúng tôi triển khai các khoản rút, chương trình sẽ cần ký thay mặt PDA Bank Vault — và để làm điều đó, chúng tôi sẽ sử dụng `invoke_signed()`.
+
+Cuối cùng, chúng tôi cập nhật PDA UserReserve của người dùng để phản ánh số tiền ký gửi mới:
 ```rust
 user_reserve.deposited_amount += deposit_amount;
 ```
-Now that you know how to create, initialize, and interact with PDAs inside the program, let’s move on to the client side.  
-➡️ In the next part, we’ll learn how to derive PDA addresses from the Anchor TypeScript client so we can call these instructions properly from the frontend or scripts.
+Bây giờ bạn đã biết cách tạo, khởi tạo và tương tác với PDAs bên trong chương trình, hãy chuyển sang phía máy khách.
 
-### 3. Derive PDA on the Client
-To interact with your program from the frontend or scripts (like calling `initialize` or `deposit`), you’ll need to derive the same PDA addresses that the program expects. Luckily, Anchor makes this easy on the TypeScript client side.  
+➡️ Trong phần tiếp theo, chúng tôi sẽ tìm hiểu cách Derive các địa chỉ PDA từ máy khách TypeScript của Anchor để chúng tôi có thể gọi những lệnh này một cách thích hợp từ giao diện máy tính tiền hoặc tập lệnh.
 
-Let’s see how to do it using the same logic we used in the program.  
-PDA addresses are derived using this formula:
+### 3. Derive PDA trên Máy khách
+Để tương tác với chương trình của bạn từ giao diện máy tính tiền hoặc tập lệnh (như gọi `initialize` hoặc `deposit`), bạn sẽ cần Derive cùng các địa chỉ PDA mà chương trình mong đợi. May mắn thay, Anchor làm cho điều này dễ dàng trên phía máy khách TypeScript.
+
+Hãy xem cách làm điều đó bằng cách sử dụng logic tương tự mà chúng tôi sử dụng trong chương trình.
+
+Các địa chỉ PDA được Derive bằng công thức này:
 ```ts
 PublicKey.findProgramAddressSync([SEEDS], PROGRAM_ID)
 ```
-- `SEEDS` is an array of bytes (Buffer) that must match exactly what the program uses.
-- `PROGRAM_ID` is the ID of your deployed program.
+- `SEEDS` là một mảng byte (Buffer) phải khớp chính xác với những gì chương trình sử dụng.
+- `PROGRAM_ID` là ID của chương trình triển khai của bạn.
 
-In our bank-app, We derive two PDAs.  
-Here’s how they’re defined in `tests/bank-app.ts`:
+Trong ứng dụng ngân hàng của chúng tôi, chúng tôi Derive hai PDA.
+
+Đây là cách chúng được xác định trong `tests/bank-app.ts`:
 ```ts
 const BANK_APP_ACCOUNTS = {
     bankInfo: PublicKey.findProgramAddressSync(
@@ -234,34 +239,37 @@ const BANK_APP_ACCOUNTS = {
     )[0],
   }
 ```
-Notice that `userReserve` is a function. This lets you dynamically generate a unique PDA for each user based on their public key.  
-By deriving PDAs this way, you ensure your client always uses the correct accounts — exactly how your program expects them.
+Lưu ý rằng `userReserve` là một hàm. Điều này cho phép bạn động sinh một PDA duy nhất cho mỗi người dùng dựa trên khóa công khai của họ.
 
-### 4. Time to Build 💪 (Your Turn!)
-Now that you understand how to create and use PDAs, it’s your turn to put it into practice.  
+Bằng cách Derive PDA theo cách này, bạn đảm bảo rằng máy khách của bạn luôn sử dụng các tài khoản chính xác — chính xác cơ với cách chương trình của bạn mong đợi.
 
-🛠️ Your Tasks: 
-1. **Implement `sol_transfer_from_pda` in `transfer_helper.rs`**  
-This function should transfer SOL from a PDA (like BankInfo) back to a user.  
-Since a PDA can’t sign on its own, you’ll need to use `invoke_signed()` and pass the correct `signers_seeds`
+### 4. Đến lúc Xây dựng 💪 (Lượt của bạn!)
+Bây giờ bạn đã hiểu cách tạo và sử dụng PDAs, đã đến lúc bạn đưa nó vào thực hành.
 
-2. **Complete the `Withdraw` Instruction**  
-Allow users to withdraw their deposited SOL from the vault (i.e., from the Bank Vault PDA).  
-We’ve already provided the PDA seeds for this instruction — just plug them in to use `invoke_signed()` properly.
+🛠️ Các Tác vụ của bạn:
+1. **Thực hiện `sol_transfer_from_pda` trong `transfer_helper.rs`**  
+Hàm này nên chuyển SOL từ một PDA (như BankInfo) trở lại cho một người dùng.
 
-3. **Implement the `Pause` Instruction**  
-Add logic to pause or unpause the app. Only the authority defined in BankInfo should be able to do this.  
-💡 Hint: Use Anchor's `#[account(address = ...)]` to restrict access.
+Vì một PDA không thể ký chính nó, bạn sẽ cần sử dụng `invoke_signed()` và truyền `signers_seeds` chính xác
 
-4. **Don't forget to write Tests in `bank-app.ts`**  
-Create tests for your new `Withdraw` and `Pause` instructions.  
-Be sure to:
-- Withdraw the correct amount and verify the updated `UserReserve`.
-- Test pausing and unpausing the app and ensure deposits/withdrawals are blocked when paused.  
+2. **Hoàn thành Lệnh `Withdraw`**  
+Cho phép người dùng rút SOL được ký gửi của họ từ Vault (tức là từ Bank Vault PDA).
 
-Once you've completed these tasks, you’ll have hands-on experience managing PDA authority, securing instructions, and signing on behalf of a PDA — essential building blocks for any serious Solana developer.
+Chúng tôi đã cung cấp các seeds PDA cho lệnh này — chỉ cần cắm chúng vào để sử dụng `invoke_signed()` một cách thích hợp.
 
-🚀 Let’s get building!
+3. **Thực hiện Lệnh `Pause`**  
+Thêm logic để dừng hoặc tiếp tục ứng dụng. Chỉ có Authority được xác định trong BankInfo mới có thể làm điều này.  
+💡 Gợi ý: Sử dụng `#[account(address = ...)]` của Anchor để hạn chế quyền truy cập.
+
+4. **Đừng quên viết Tests trong `bank-app.ts`**  
+Tạo các bài kiểm tra cho các lệnh `Withdraw` và `Pause` mới của bạn.  
+Hãy chắc chắn:
+- Rút số tiền đúng và xác minh `UserReserve` được cập nhật.
+- Kiểm tra tạm dừng và tiếp tục ứng dụng và đảm bảo gửi/rút bị chặn khi tạm dừng.  
+
+Khi bạn hoàn thành các tác vụ này, bạn sẽ có kinh nghiệm thực tế trong quản lý Authority PDA, bảo mật hướng dẫn và ký tên thay mặt PDA — những khối xây dựng thiết yếu cho bất kỳ nhà phát triển Solana nghiêm túc nào.
+
+🚀 Hãy bắt đầu xây dựng!
 
 
 
