@@ -1,49 +1,50 @@
-# Part Five - Cross Program Invocation (CPI)
-Now that you know how to work with tokens and ATAs, it's time to explore one of the most powerful features of Solana smart contracts — Cross-Program Invocations (CPIs).
+# Phần Năm - Lệnh Gọi Chương Trình Chéo (CPI)
 
-CPIs allow one program to securely call and execute instructions in another program. This is how DeFi apps integrate with token programs, oracles, staking vaults, and more — enabling modular, composable applications across the Solana ecosystem.
+Bây giờ bạn đã biết cách làm việc với các token và ATA, đã đến lúc khám phá một trong những tính năng mạnh mẽ nhất của các hợp đồng thông minh Solana - Các Lệnh Gọi Chương Trình Chéo (CPI).
 
-In this section, you’ll:  
-✅ Understand what CPI is and how it works under the hood in Anchor  
-✅ Walk through an example: staking SOL from the Bank App using CPI  
-✅ Build a simple spl-token Staking App and integrate it with the Bank App using CPI  
+Các CPI cho phép một chương trình gọi và thực thi một cách an toàn các hướng dẫn trong một chương trình khác. Đây là cách các ứng dụng DeFi tích hợp với các chương trình token, oracle, kho tiền cược, và hơn thế nữa - cho phép các ứng dụng mô-đun, có thể kết hợp được trên toàn bộ hệ sinh thái Solana.
 
-By the end of this part, you’ll be able to interact with external programs and build protocols that can compose with the rest of the Solana ecosystem — a key superpower for serious Solana development.
+Trong phần này, bạn sẽ:  
+✅ Hiểu CPI là gì và cách nó hoạt động bên dưới trong Anchor  
+✅ Đi qua một ví dụ: cơn cơn cơo SOL từ Ứng dụng Ngân hàng bằng CPI  
+✅ Xây dựng một Ứng dụng Kho tiền cược SPL đơn giản và tích hợp nó với Ứng dụng Ngân hàng bằng CPI  
 
-Let’s dive in! 🔄💡
+Cho đến cuối phần này, bạn sẽ có thể tương tác với các chương trình bên ngoài và xây dựng các giao thức có thể sáng tác với phần còn lại của hệ sinh thái Solana - một siêu năng lực cơ bản cho phát triển Solana nghiêm túc.
 
-### 🏦 Extending the Bank App: Investing via CPI
-You already know that in the real world, banks don’t just hold users’ deposits — they put that money to work, investing it to earn returns. Our Bank App is about to do the same.  
+Hãy bắt đầu! 🔄💡
 
-In this session, we’ll upgrade the Bank App with the ability to invest user funds into external protocols using Cross-Program Invocation (CPI). This is how real DeFi vaults, lending platforms, and DAOs grow capital while keeping everything on-chain and auditable.  
+### 🏦 Mở rộng Ứng dụng Ngân hàng: Đầu tư qua CPI
+Bạn đã biết rằng trong thế giới thực, các ngân hàng không chỉ nắm giữ tiền gửi của người dùng - họ sử dụng tiền đó, đầu tư nó để kiếm lợi nhuận. Ứng dụng Ngân hàng của chúng tôi sắp làm điều tương tự.
 
-We’ll support two new functions that empower the Bank authority to manage investments:
-+ Allows the bank authority to invest SOL from the bank vault into another dApp
-+ Lets the bank authority withdraw previously invested SOL from the dApp back into the vault
+Trong phiên này, chúng tôi sẽ nâng cấp Ứng dụng Ngân hàng bằng khả năng đầu tư quỹ của người dùng vào các giao thức bên ngoài bằng cách sử dụng Cross-Program Invocation (CPI). Đây là cách các kho tiền DeFi thực tế, các nền tảng cho vay và DAO phát triển vốn trong khi giữ mọi thứ trên chuỗi và có thể kiểm toán được.
 
-💡 This pattern forms the foundation of yield strategies, automated vaults, and treasury management systems in Solana DeFi.
+Chúng tôi sẽ hỗ trợ hai chức năng mới giúp cấp quyền cho cấp quyền Ngân hàng quản lý khoản đầu tư:
++ Cho phép cấp quyền ngân hàng đầu tư SOL từ kho tiền ngân hàng vào một dApp khác
++ Cho phép cấp quyền ngân hàng rút SOL đã đầu tư trước đó từ dApp trở lại kho tiền
 
-### 1. What is CPI?
-CPI, or Cross-Program Invocation, is a feature in Solana that allows one program to call and execute instructions in another program — securely and permissionlessly.  
+💡 Mô hình này tạo thành nền tảng cho các chiến lược lợi suất, kho tiền tự động và các hệ thống quản lý kho tiền trong DeFi Solana.
 
-Think of it like calling a function from another module — except both "modules" are on-chain programs. This enables composability, meaning you can build applications that reuse logic from existing programs like the Token Program, staking protocols, lending markets, and more.
+### 1. CPI là gì?
+CPI, hoặc Cross-Program Invocation, là một tính năng trong Solana cho phép một chương trình gọi và thực thi một cách an toàn các hướng dẫn trong một chương trình khác - một cách an toàn và không yêu cầu phép.
 
-#### 🧠 Why is CPI important?
-✅ Reusability – No need to reinvent the wheel; just call existing programs.  
-✅ Modularity – Build clean, maintainable apps by splitting logic across programs.  
-✅ Interoperability – Your program can interact with DeFi protocols, DAOs, or other custom apps.  
+Hãy nghĩ về nó như gọi một hàm từ một mô-đun khác — ngoại trừ cả hai "mô-đun" đều là các chương trình trên chuỗi. Điều này cho phép khả năng kết hợp, có nghĩa là bạn có thể xây dựng các ứng dụng tái sử dụng logic từ các chương trình hiện có như Chương trình Token, các giao thức kho tiền cược, các thị trường cho vay, v.v.
 
-#### 🧩 How does CPI work?
-When one program wants to call another, it performs a Cross-Program Invocation:
-1. It prepares the required accounts and any instruction data.
-2. It wraps these into a `CpiContext`, optionally including signer seeds if the calling program is using a PDA as authority.
-3. It calls the target program’s CPI helper function.Anchor internally constructs and sends the CPI instruction using Solana’s runtime.
-4. Anchor internally constructs and sends the CPI instruction using Solana’s runtime.  
+#### 🧠 Tại sao CPI lại quan trọng?
+✅ Tái sử dụng - Không cần phải phát minh lại bánh xe; chỉ cần gọi các chương trình hiện có.
+✅ Mô-đunhóa - Xây dựng các ứng dụng sạch, có thể bảo trì bằng cách chia logic trên các chương trình.
+✅ Khả năng tương tác - Chương trình của bạn có thể tương tác với các giao thức DeFi, DAO hoặc các ứng dụng tùy chỉnh khác.  
 
-In low-level Rust, this would involve `invoke()` or `invoke_signed()`, but with Anchor, you typically never need to call those directly — Anchor handles it for you under the hood.  
-This is a clean, safe, and ergonomic way to perform CPIs in Anchor.  
+#### 🧩 CPI hoạt động như thế nào?
+Khi một chương trình muốn gọi chương trình khác, nó thực hiện một Cross-Program Invocation:
+1. Nó chuẩn bị các tài khoản cần thiết và bất kỳ dữ liệu hướng dẫn nào.
+2. Nó gói chúng vào một `CpiContext`, tùy chọn bao gồm hạt giống ký nếu chương trình gọi sử dụng PDA làm thẩm quyền.
+3. Nó gọi hàm trợ giúp CPI của chương trình đích. Anchor nội bộ xây dựng và gửi hướng dẫn CPI bằng cách sử dụng thời gian chạy của Solana.
+4. Anchor nội bộ xây dựng và gửi hướng dẫn CPI bằng cách sử dụng thời gian chạy của Solana.
 
-In this tutorial, your **Bank App** will call your **Staking App** using CPI to stake or withdraw SOL on behalf of users. This is exactly how real DeFi protocols like yield vaults or auto-compounders operate.
+Trong Rust cấp thấp, điều này sẽ liên quan đến `invoke()` hoặc `invoke_signed()`, nhưng với Anchor, bạn thường không bao giờ cần gọi trực tiếp các chương trình đó — Anchor sẽ xử lý nó cho bạn bên dưới.
+Đây là một cách sạch, an toàn và ergonomic để thực hiện CPI trong Anchor.
+
+Trong hướng dẫn này, **Ứng dụng Ngân hàng** của bạn sẽ gọi **Ứng dụng Kho tiền cược** của bạn bằng CPI để cơn cơo hoặc rút SOL thay mặt cho người dùng. Đây chính xác là cách các giao thức DeFi thực tế như kho tiền lợi suất hoặc autocompounders hoạt động.
 
 ### 2. Real-World Example: Investing SOL from the Bank App into the Staking App
 Let’s see CPI in action with a real-world use case.  

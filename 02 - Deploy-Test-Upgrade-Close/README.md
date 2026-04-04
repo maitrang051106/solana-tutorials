@@ -1,19 +1,19 @@
-# Part Two - Deploy, Test, Upgrade, and Close
+# Phần Hai - Triển khai, Kiểm tra, Nâng cấp và Đóng
 
-In the previous section, we initialized the my-first-anchor-project. Now, we’ll take it a step further by learning how to:
+Ở phần trước, chúng ta đã khởi tạo my-first-anchor-project. Bây giờ, chúng ta sẽ tiến thêm một bước bằng cách tìm hiểu cách:
 
-✅ Deploy the program to Devnet  
-✅ Write and run test cases using Anchor  
-✅ Upgrade the program after making changes  
-✅ And finally, close the program to reclaim any SOL locked in buffer accounts  
+✅ Triển khai chương trình đến Devnet  
+✅ Viết và chạy các trường hợp kiểm tra bằng Anchor  
+✅ Nâng cấp chương trình sau khi thực hiện các thay đổi  
+✅ Và cuối cùng, đóng chương trình để lấy lại SOL bị khóa trong các tài khoản bộ đệm  
 
-Let’s dive in and complete the full lifecycle of your first Anchor program!
+Hãy bắt tay vào công việc và hoàn thành vòng đời đầy đủ của chương trình Anchor đầu tiên của bạn!
 
-### 1. Deploy
+### 1. Triển khai
 
-Once your Anchor project is initialized, Anchor generates a basic example program to help you get started. This sample program includes a simple initialize function and is ready to deploy to the Solana network.  
+Sau khi dự án Anchor của bạn được khởi tạo, Anchor sẽ tạo ra một chương trình ví dụ cơ bản để giúp bạn bắt đầu. Chương trình mẫu này bao gồm một hàm khởi tạo đơn giản và sẵn sàng để triển khai lên mạng Solana.  
 
-Here’s what the default program looks like:
+Đây là cách chương trình mặc định trông như thế:
 ```rust
 use anchor_lang::prelude::*;
 
@@ -32,20 +32,20 @@ pub mod my_first_anchor_project {
 pub struct Initialize {}
 ```
 
-Let's break this down.  
-The first line you’ll notice is the program's declared ID:
+Hãy phân tích chi tiết điều này.
+Dòng đầu tiên bạn sẽ nhận thấy là ID được khai báo của chương trình:
 ```rust
 declare_id!("GDGNBNAhHGmMKcxVxXBTTJ8xytmdjNuFWsr2igqhck27");
 ```
 
 
-This is the **program ID** (like a contract address) that will be used after deployment. The actual ID is determined by the keypair located at:
+Đây là **ID chương trình** (giống như địa chỉ hợp đồng) sẽ được sử dụng sau khi triển khai. ID thực tế được xác định bởi keypair nằm tại:
 ```
 my-first-anchor-project/target/deploy/my_first_anchor_project-keypair.json
 ```
-Your program ID will likely be different from the one shown above, and you can generate a new random keypair if needed.
+ID chương trình của bạn có thể khác với ID được hiển thị ở trên, và bạn có thể tạo một keypair ngẫu nhiên mới nếu cần.
 
-Next, we have the main part of the program:
+Tiếp theo, chúng ta có phần chính của chương trình:
 ```rust
 #[program]
 pub mod my_first_anchor_project {
@@ -56,16 +56,16 @@ pub mod my_first_anchor_project {
     }
 }
 ```
-This example is very simple. It defines just one method called `initialize`, which currently doesn’t include any logic—it simply returns `Ok(())` when invoked.  
+Ví dụ này rất đơn giản. Nó chỉ định nghĩa một phương thức gọi là `initialize`, hiện tại không bao gồm bất kỳ logic nào - nó chỉ trả về `Ok(())` khi được gọi.
 
-Now, to deploy the program to devnet, you need to build it first.  
-Run the following command:
+Bây giờ, để triển khai chương trình đến devnet, bạn cần xây dựng nó trước.
+Chạy lệnh sau:
 
 ```bash
 anchor build
 ```
 
-The output should look something like this:
+Kết quả đầu ra sẽ trông giống như thế này:
 ```bash
 warning: unused variable: `ctx`
  --> programs/my-first-anchor-project/src/lib.rs:9:23
@@ -78,50 +78,50 @@ warning: unused variable: `ctx`
 warning: `my-first-anchor-project` (lib) generated 1 warning (run `cargo fix --lib -p my-first-anchor-project` to apply 1 suggestion)
     Finished release [optimized] target(s) in 37.40s
 ```
-You can safely ignore the warning for now.  
-After the build completes, you’ll find a `.so` file generated at:
+Bây giờ bạn có thể bỏ qua cảnh báo. 
+Sau khi bản dựng hoàn thành, bạn sẽ tìm thấy tệp `.so` được tạo tại:
 
 ```
 my-first-anchor-project/target/deploy/my_first_anchor_project.so
 ```
 
-This `.so` file is the compiled version of your program and will be used to deploy to the Solana Devnet.  
-Additionally, the IDL and TypeScript types are also generated at:
+Tệp `.so` này là phiên bản được biên dịch của chương trình của bạn và sẽ được sử dụng để triển khai lên Solana Devnet.
+Ngoài ra, IDL và các loại TypeScript cũng được tạo tại:
 ```
 target/idl/my_first_anchor_project.json
 target/types/my_first_anchor_project.ts
 ```
-We’ll leave these files as they are for now and revisit them in the testing section.  
+Chúng ta sẽ để các tệp này nguyên vẹn bây giờ và xem lại chúng trong phần kiểm tra.
 
-Now you're ready to deploy the program! Run the following command:
+Bây giờ bạn đã sẵn sàng triển khai chương trình! Chạy lệnh sau:
 ```bash
 solana program deploy target/deploy/my_first_anchor_project.so --program-id target/deploy/my_first_anchor_project-keypair.json
 ```
 
-You should see output similar to this:
+Bạn sẽ thấy kết quả đầu ra tương tự như thế này:
 ```bash
 Program Id: GDGNBNAhHGmMKcxVxXBTTJ8xytmdjNuFWsr2igqhck27
 ```
 
-🎉 **Congratulations!** You've successfully deployed your first Solana program to the Devnet.  
+🎉 **Xin chúc mừng!** Bạn đã triển khai thành công chương trình Solana đầu tiên của mình lên Devnet.  
 
-You can also configure your `Anchor.toml` to specify the devnet cluster:
+Bạn cũng có thể cấu hình `Anchor.toml` của mình để chỉ định cụm devnet:
 ```
 cluster = "Devnet"
 ```
-Then, deploy using the Anchor CLI:
+Sau đó, triển khai bằng Anchor CLI:
 ```bash
 anchor deploy
 ```
 
-This is convenient for local and devnet development and testing, but **not recommended for mainnet** deployments.
+Điều này thuận tiện cho phát triển và kiểm tra máy cục bộ và devnet, nhưng **không được khuyến khích cho** triển khai mainnet.
 
 
 ---
 
-##### ⚠️ Why Not Use `anchor deploy` on Mainnet?
+##### ⚠️ Tại sao không sử dụng `anchor deploy` trên Mainnet?
 
-On mainnet, `anchor deploy` can often fail due to RPC reliability issues. Instead, it's better to use the `solana program deploy` command with a specific RPC provider.  
+Trên mainnet, `anchor deploy` thường thất bại do các vấn đề độ tin cậy của RPC. Thay vào đó, tạ tốt hơn là sử dụng lệnh `solana program deploy` với một nhà cung cấp RPC cụ thể.  
 
 For example, using the `--use-rpc` flag with a private, high-quality RPC endpoint:
 
@@ -129,8 +129,8 @@ For example, using the `--use-rpc` flag with a private, high-quality RPC endpoin
 solana program deploy target/deploy/my_first_anchor_project.so --program-id target/deploy/my_first_anchor_project-keypair.json --use-rpc
 ```
 
-### 2. Test
-After building your Solana smart contract using Anchor, it's important to test it and make sure it behaves as expected. Anchor makes testing simple using TypeScript and Mocha.  
+### 2. Kiểm tra
+Sau khi xây dựng hợp đồng thông minh Solana của bạn bằng Anchor, điều quan trọng là kiểm tra nó và đảm bảo nó hoạt động như dự kinh thối lương. Anchor làm cho kiểm tra dễ dàng bằng cách sử dụng TypeScript và Mocha.  
 Let's walk through how to run a basic test using a function called `initialize()` that we created in our program.  
 
 Anchor automatically creates a test file when you initialize your project. You can find it in the `tests/` folder.  

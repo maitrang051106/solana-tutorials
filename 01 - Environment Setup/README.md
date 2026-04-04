@@ -1,19 +1,19 @@
-# Part One - Environment Setup
-Before writing or deploying smart contracts on Solana, we need to set up a proper development environment. This part will walk you through everything you need to get started, from installing key tools to creating your first Anchor project.
+# Phần Một - Thiết lập Môi trường
+Trước khi viết hoặc triển khai hợp đồng thông minh trên Solana, chúng ta cần thiết lập môi trường phát triển thích hợp. Phần này sẽ hướng dẫn bạn qua tất cả những gì bạn cần để bắt đầu, từ cài đặt các công cụ chính đến tạo dự án Anchor đầu tiên của bạn.
 
-### In this section, you will:
-✅ Install Rust, the programming language used to write Solana programs  
-✅ Install the Solana CLI, which allows you to interact with the blockchain  
-✅ Install the Anchor framework, the most popular toolkit for Solana development  
+### Trong phần này, bạn sẽ:
+✅ Cài đặt Rust, ngôn ngữ lập trình được sử dụng để viết các chương trình Solana  
+✅ Cài đặt Solana CLI, cho phép bạn tương tác với blockchain  
+✅ Cài đặt framework Anchor, bộ công cụ phổ biến nhất cho phát triển Solana  
 
-By the end of this part, you’ll have everything you need to build, test, and deploy Solana smart contracts on Devnet.
+Tới cuối phần này, bạn sẽ có mọi thứ cần thiết để xây dựng, kiểm tra và triển khai hợp đồng thông minh Solana trên Devnet.
 
-Let’s get started! 🚀
-### ONE COMMAND DO ALL THE INSTALL
+Hãy bắt đầu! 🚀
+### MỘT LỆNH CÀI ĐẶT TẤT CẢ
 ```
 curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash
 ```
-A successful installation will return output like the following:
+Một lần cài đặt thành công sẽ trả về kết quả như sau:
 ```
 Installed Versions:
 Rust: rustc 1.91.0 
@@ -22,66 +22,66 @@ Anchor CLI: 0.32.1
 Node.js: v24.10.0
 Yarn: 1.22.22
 ```
-verify again by:
+xác minh lại bằng:
 
 ```
 rustc --version && solana --version && anchor --version && node --version && yarn --version
 ```
-This will install THE NEWEST VERSION, not STABLE VERSION. In order to install stable versions, paste and run these following commands:
+Cái này sẽ cài đặt PHIÊN BẢN MỚI NHẤT, không phải PHIÊN BẢN ỔNĐỊNH. Để cài đặt các phiên bản ổn định, hãy dán và chạy các lệnh sau:
 ```bash
 rustup default 1.90.0
 agave-install init 2.3.0
 avm use 0.31.1
 
 ```
-### 1. Install Rust
+### 1. Cài đặt Rust
 
-Run the following command to install Rust:
+Chạy lệnh sau để cài đặt Rust:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ```
 
-After installation, you'll need to reload your PATH environment variable to include Cargo’s bin directory
-Run the following command:
+Sau khi cài đặt, bạn cần tải lại biến môi trường PATH để bao gồm thư mục bin của Cargo
+Chạy lệnh sau:
 ```bash
 . "$HOME/.cargo/env"
 ```
-This ensures that the cargo and rustc commands are available globally in your terminal session.
+Điều này đảm bảo rằng các lệnh cargo và rustc có sẵn toàn cầu trong phiên terminal của bạn.
 
-Then, check if Rust has been successfully installed:
+Sau đó, kiểm tra xem Rust đã được cài đặt thành công chưa:
 ```bash
 rustc --version
 ```
 
-To ensure compatibility with the Anchor framework stable version (will be installed in the next part), we should set the Rust version to 1.90.0:
+Để đảm bảo tương thích với phiên bản ổn định của framework Anchor (sẽ được cài đặt trong phần tiếp theo), chúng ta nên đặt phiên bản Rust thành 1.90.0:
 ```bash
 rustup default 1.90.0
 ```
 
-### 2. Install The Solana CLI 
+### 2. Cài đặt Solana CLI 
 
-To interact with the Solana blockchain, you need to install the Solana Command Line Interface (CLI). The Solana CLI provides commands for creating wallets, deploying programs, and send transactions.
+Để tương tác với blockchain Solana, bạn cần cài đặt Solana Command Line Interface (CLI). Solana CLI cung cấp các lệnh để tạo ví, triển khai chương trình và gửi giao dịch.
 
-Run the following command to download and install the Solana CLI:
+Chạy lệnh sau để tải xuống và cài đặt Solana CLI:
 ```bash
 sh -c "$(curl -sSfL https://release.anza.xyz/v2.3.0/install)"
 ```
 
-After installation, update your environment so the `solana` command is available:
+Sau khi cài đặt, hãy cập nhật môi trường của bạn để lệnh `solana` có sẵn:
 ```bash
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 ```
 
-Check the version to confirm everything is set up correctly:
+Kiểm tra phiên bản để xác nhận mọi thứ đã được thiết lập chính xác:
 ```bash
 solana --version
 ```
 
-Now the Solana CLI has successfully installed, you can create your first wallet by:
+Bây giờ Solana CLI đã cài đặt thành công, bạn có thể tạo ví đầu tiên của mình bằng cách:
 ```bash
 solana-keygen new 
 ```
-You should see output like the following:
+Bạn sẽ thấy kết quả như sau:
 ```bash
 Wrote new keypair to /Users/nhatbui97/.config/solana/id.json
 ====================================================================
@@ -91,27 +91,27 @@ Save this seed phrase and your BIP39 passphrase to recover your new keypair:
 cloud taxi flash truth rug pill bronze duck bread month patch behave
 ====================================================================
 ```
-⚠️ Important: Store your seed phrase securely. Anyone with access to it can control your funds.
+⚠️ Quan trọng: Lưu trữ cụm từ seed của bạn một cách an toàn. Bất cứ ai có quyền truy cập vào nó đều có thể kiểm soát quỹ của bạn.
 
 
-Then switch RPC URL to devnet and get you some SOL for transaction fee:
+Sau đó, chuyển URL RPC sang devnet và nhận một số SOL cho phí giao dịch:
 ```bash
 solana config set -u https://api.devnet.solana.com 
 solana airdrop 5
 ```
 
-For easier access and UI interaction, you can import your wallet into [Phantom Wallet](https://phantom.com/download)
-Run:
+Để dễ dàng truy cập và tương tác UI, bạn có thể nhập ví của mình vào [Phantom Wallet](https://phantom.com/download)
+Chạy:
 ```bash
 cat $HOME/.config/solana/id.json
 ```
 
-This prints an array of numbers like:
+Cái này in ra một mảng các số như:
 ```bash
 [25,250,185,230,65,229,210,243,20,209,26,80,240,226,48,97,145,15,119,43,132,245,62,210,12,180,144,72,190,100,81,104,10,241,215,149,189,41,158,148,184,110,49,69,150,197,128,112,249,223,130,24,115,123,92,77,83,180,100,176,19,136,114,173]
 ```
 
-Import this to Phantom Wallet and turn on Testnet Mode:
+Nhập cái này vào Phantom Wallet và bật chế độ Testnet:
 <p float="left">
   <img src="../Example Images/01-ImportPhantom1.png" alt="Step 1" width="240" height="400" style="margin-right: 10px;"/>
   <img src="../Example Images/01-ImportPhantom2.png" alt="Step 2" width="240" height="400" style="margin-right: 10px;"/>
@@ -119,38 +119,38 @@ Import this to Phantom Wallet and turn on Testnet Mode:
   <img src="../Example Images/01-ImportPhantom4.png" alt="Step 4" width="240" height="400"/>
 </p>
 
-### 3. Install Anchor CLI
+### 3. Cài đặt Anchor CLI
 
-Anchor is a framework for developing Solana programs. The Anchor framework leverages Rust macros to simplify the process of writing Solana programs.
-The Anchor version manager (AVM) allows you to install and manage different Anchor versions on your system and easily update Anchor versions in the future.
+Anchor là một framework để phát triển các chương trình Solana. Framework Anchor tận dụng các macro Rust để đơn giản hóa quá trình viết các chương trình Solana.
+Trình quản lý phiên bản Anchor (AVM) cho phép bạn cài đặt và quản lý các phiên bản Anchor khác nhau trên hệ thống của bạn và dễ dàng cập nhật các phiên bản Anchor trong tương lai.
 
-Install AVM with the following command:
+Cài đặt AVM bằng lệnh sau:
 ```bash
 cargo install --git https://github.com/coral-xyz/anchor avm --force
 ```
 
-Confirm that AVM installed successfully:
+Xác nhận rằng AVM đã cài đặt thành công:
 ```bash
 avm --version
 ```
 
-Most major Solana protocols (as of 14 May 2025) - such as Jito, Jupiter, Raydium, Orca,... - still use Anchor 0.29.0 as their stable release.
-Update, this is outdated (11 Nov 25), we need to use v0.30 and above, the most stable is 0.31.1.
+Hầu hết các giao thức Solana chính (tính đến ngày 14 tháng 5 năm 2025) - như Jito, Jupiter, Raydium, Orca,... - vẫn sử dụng Anchor 0.29.0 làm bản phát hành ổn định của họ.
+Cập nhật, cái này đã cũ (11 tháng 11 năm 25), chúng ta cần sử dụng v0.30 trở lên, phiên bản ổn định nhất là 0.31.1.
 ```bash
 avm use 0.31.1
 ```
 
-Confirm your Anchor version:
+Xác nhận phiên bản Anchor của bạn:
 ```bash
 anchor --version
 ```
-Congratulations! You've successfully installed the Anchor framework.
-You can now initialize your first Anchor project by running:
+Xin chúc mừng! Bạn đã cài đặt thành công framework Anchor.
+Bây giờ bạn có thể khởi tạo dự án Anchor đầu tiên của mình bằng cách chạy:
 ```bash
 anchor init my-first-anchor-project
 ```
 
-Once complete the output should look something like the following:
+Sau khi hoàn tất, kết quả sẽ trông giống như sau:
 ```bash
 yarn install v1.22.22
 warning package.json: No license field
@@ -170,34 +170,34 @@ success Saved lockfile.
 Initialized empty Git repository in /Users/nhatbui97/Documents/Solana Program/solana-tutorials/01 - Environment Setup/my-first-anchor-project/.git/
 my-first-anchor-project initialized
 ```
-You're now ready to start building on Solana with Anchor!
+Bây giờ bạn đã sẵn sàng để bắt đầu xây dựng trên Solana với Anchor!
 
 
 
 
 
 
-# For one who use Windows to run this
-Im someone who likes windows, like alot, i did use Linux couple of years but always got somthing error. So i wrote this down to help some one has trouble while setup Solana on Windows.
-If you doesn't like to run wsl on Windows, and run Rust directly, i wouldn't recommend it, tho i did run it flawlessly 1.5 years with chocolatey (im running cosmwasm, not solana), dyor for this. But i suggest you do wsl setup, much easier.
+# Đối với những người sử dụng Windows để chạy cái này
+Tôi là một người thích Windows, rất thích, tôi đã sử dụng Linux vài năm nhưng luôn gặp lỗi. Vì vậy tôi đã viết điều này để giúp một số người gặp rắc rối khi thiết lập Solana trên Windows.
+Nếu bạn không muốn chạy wsl trên Windows, và chạy Rust trực tiếp, tôi sẽ không khuyến khích, mặc dù tôi đã chạy nó hoàn hảo 1,5 năm với chocolatey (tôi chạy cosmwasm, không phải solana), hãy kiểm tra lại. Nhưng tôi gợi ý bạn nên thiết lập wsl, dễ dàng hơn nhiều.
 
-https://solana.com/docs/intro/installation - Here's the official guide for you, but i will tldr this step down below
-1. First you need to install WSL2 (WSL) on Windows. This in order to help you run Linux terminal directly on windows.
-2. Second, access Windows Store on your Windows 10/11, search "Ubuntu". You can install whatever distro (version) you want but i recommend get the one has the highest review score.
-3. After that, open windows search, search "Ubuntu", terminal will popup, you type username, password etc... ready to go!
+https://solana.com/docs/intro/installation - Đây là hướng dẫn chính thức cho bạn, nhưng tôi sẽ tóm tắt lại các bước dưới đây
+1. Trước tiên, bạn cần cài đặt WSL2 (WSL) trên Windows. Điều này để giúp bạn chạy terminal Linux trực tiếp trên windows.
+2. Thứ hai, hãy truy cập Windows Store trên Windows 10/11 của bạn, tìm kiếm "Ubuntu". Bạn có thể cài đặt bất kỳ distro (phiên bản) nào bạn muốn nhưng tôi đề xuất chọn cái có điểm đánh giá cao nhất.
+3. Sau đó, hãy mở tìm kiếm windows, tìm kiếm "Ubuntu", terminal sẽ xuất hiện, bạn gõ tên người dùng, mật khẩu, v.v... sẵn sàng để đi!
 
 
 
-## Some error i faced myself, or just notes
-- If your C drive (where you windows install) too small, not enough space or something else, you might want to change location where the distro (ubuntu) install, do this 
+## Một số lỗi tôi gặp phải, hoặc chỉ là ghi chú
+- Nếu ổ đĩa C của bạn (nơi bạn cài đặt windows) quá nhỏ, không đủ dung lượng hoặc có vấn đề khác, bạn có thể muốn thay đổi vị trí cài đặt distro (ubuntu), hãy làm như sau 
 
-1. Just click Ubuntu 22.04 install button in Microsoft Store App(which only download appx package, installation will be triggered when we click Ubuntu in StartMenu first time).
+1. Chỉ cần nhấp vào nút cài đặt Ubuntu 22.04 trong Ứng dụng Microsoft Store (chỉ tải xuống gói appx, cài đặt sẽ được kích hoạt khi chúng ta nhấp vào Ubuntu lần đầu tiên trong StartMenu).
 
-2. Then search `install.tar.gz` via Everything app, suprise are as follows: Expand-appx from Macrosoft Store
+2. Sau đó, tìm kiếm `install.tar.gz` thông qua ứng dụng Everything, kết quả như sau: Expand-appx từ Macrosoft Store
 
-3. Copy all the files to `D:\WSL\appx` or where you like, click <distribution>.exe to install, then a ext4.vhdx file will be created like follows:after install
+3. Sao chép tất cả các tệp vào `D:\WSL\appx` hoặc nơi bạn thích, nhấp vào <distribution>.exe để cài đặt, sau đó tệp ext4.vhdx sẽ được tạo như sau: sau khi cài đặt
 
-4. Finally trigger uninstall from StartMenu which delete the packages in drive-C.
+4. Cuối cùng, kích hoạt gỡ cài đặt từ StartMenu sẽ xóa các gói trên ổ đĩa C.
 
 contact me if this unclear.
 

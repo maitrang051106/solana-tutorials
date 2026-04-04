@@ -1,8 +1,8 @@
-# 🌊 Solana Tutorials
-Solana Tutorials is a curated collection of hands-on guides designed to help developers of all levels build confidently on the Solana blockchain. Whether you're just starting out or exploring advanced topics, these tutorials aim to make Solana development approachable, practical, and enjoyable.
+# 🌊 Hướng dẫn Solana
+Hướng dẫn Solana là một bộ sưu tập các hướng dẫn thực hành được tuyển chọn, được thiết kế để giúp các nhà phát triển ở mọi cấp độ xây dựng tự tin trên blockchain Solana. Cho dù bạn mới bắt đầu hay khám phá các chủ đề nâng cao, những hướng dẫn này nhằm mục đích làm cho phát triển Solana trở nên dễ tiếp cận, thiết thực và thú vị.
 
-Our goal is to break down complex concepts into clear, actionable steps — empowering you to create fast, secure, and scalable applications using modern tools like the Anchor framework and Solana CLI.
+Mục tiêu của chúng tôi là phân chia các khái niệm phức tạp thành các bước rõ ràng, có thể thực hiện được — trao quyền cho bạn tạo ra các ứng dụng nhanh, an toàn và có thể mở rộng bằng cách sử dụng các công cụ hiện đại như framework Anchor và Solana CLI.
 
-By working through these examples, you'll gain not only technical skills, but also a deeper understanding of how Solana works under the hood — from smart contracts to transactions, PDAs, and more.
+Bằng cách thực hiện các ví dụ này, bạn sẽ không chỉ có được các kỹ năng kỹ thuật, mà còn hiểu sâu hơn về cách Solana hoạt động bên dưới — từ hợp đồng thông minh đến giao dịch, PDA, v.v.
 
-No fluff. Just clean, focused learning — built by developers, for developers
+Không có chuyện phức tạp. Chỉ là học tập sạch sẽ, tập trung — được xây dựng bởi các nhà phát triển, cho các nhà phát triển

@@ -1,34 +1,34 @@
-# Part Three - Program Derived Address (PDA)
+# Phần Ba - Địa chỉ Chương trình Được Lấy (PDA)
 
-Now that you’re comfortable writing basic Solana programs, it’s time to introduce one of the most important concepts in Solana development — Program Derived Addresses (PDAs). These special accounts are the key to building secure, stateful programs that can store user data, manage vaults, control authorities, and more.  
+Bây giờ bạn đã thoải mái viết các chương trình Solana cơ bản, đã đến lúc giới thiệu một trong những khái niệm quan trọng nhất trong phát triển Solana — Program Derived Addresses (PDA). Các tài khoản đặc biệt này là chìa khóa để xây dựng các chương trình an toàn, có trạng thái có thể lưu trữ dữ liệu người dùng, quản lý kho tiền, kiểm soát quyền, v.v.
 
-### In this section, you will:
-✅ Understand what PDAs are and how they work  
-✅ Initialize accounts using PDAs with seeds and bump  
-✅ Learn how to derive PDAs in Anchor TS Client.  
-✅ Complete the first real-world example: the Bank App  
+### Trong phần này, bạn sẽ:
+✅ Hiểu PDA là gì và có thể hoạt động như thế nào  
+✅ Khởi tạo các tài khoản bằng các PDA với hạt giống và bump  
+✅ Tìm hiểu cách lấy PDA trong Anchor TS Client.  
+✅ Hoàn thành ví dụ thực tế đầu tiên: ứng dụng Ngân hàng  
 
-By the end of this part, you’ll be able to confidently create and manage PDA accounts in your Solana programs, unlocking the ability to build more powerful and complex smart contracts.  
-Let’s dive in! 🧠✨
+Cho đến cuối phần này, bạn sẽ có thể tạo và quản lý các tài khoản PDA một cách tự tin trong các chương trình Solana của mình, mở khóa khả năng xây dựng các hợp đồng thông minh mạnh mẽ hơn và phức tạp hơn.  
+Đây vào đi! 🧠✨
 
-### Let's start with a real-world example: the Bank App 🏦
-To understand how PDAs work in practice, let’s look at a simple banking program on Solana.  
-In this app:
+### Hãy bắt đầu với một ví dụ thực tế: Ứng dụng Ngân hàng 🏦
+Để hiểu PDA hoạt động như thế nào trong thực hành, hãy xem xét một chương trình ngân hàng đơn giản trên Solana.  
+Trong ứng dụng này:
 
-👤 Users can deposit and withdraw SOL  
-🛑 An authority can pause the program to stop all activity during an emergency  
-💾 The program should store:
-- Global state in a special PDA account called `BankInfo`
-- Each user’s deposited balance in individual PDA accounts called `UserReserve`
+👤 Người dùng có thể gửi và rút SOL  
+🛑 Một quản trị viên có thể tạm dừng chương trình để dừng tất cả hoạt động trong trường hợp khẩn cấp  
+💾 Chương trình nên lưu trữ:
+- Trạng thái toàn cầu trong một tài khoản PDA đặc biệt gọi là `BankInfo`
+- Số dư riêng của mỗi người dùng trong các tài khoản PDA riêng lẻ gọi là `UserReserve`
 
 
-### 1. What is a PDA?
-A Program Derived Address (PDA) is a special type of Solana account that is owned by a program, not by an on-curve wallet (user wallet) with a private key. This makes PDAs the backbone of most Solana smart contracts — they allow your program to safely manage state, assets, and authority without depending on externally owned wallets.  
+### 1. PDA là gì?
+Một Program Derived Address (PDA) là một loại tài khoản Solana đặc biệt được sở hữu bởi một chương trình, không phải bởi một ví trên đường cong (ví của người dùng) có khóa riêng. Điều này làm cho PDA trở thành xương sống của hầu hết các hợp đồng thông minh Solana — chúng cho phép chương trình của bạn quản lý an toàn trạng thái, tài sản và quyền mà không phụ thuộc vào ví được sở hữu bên ngoài.
 
-PDAs are:  
-🔐 *Controlled by your program* — no private key, only the program can access its PDAs, and no one can forge its signature.  
-🧠 *Deterministic* — they’re generated using fixed inputs (called `seeds`) plus your program ID  
-✍️ *Able to sign transactions* — but only by using `invoke_signed()` with the PDA's `seeds` inside your program  
+PDA là:  
+🔐 *Được kiểm soát bởi chương trình của bạn* — không có khóa riêng, chỉ chương trình của bạn mới có thể truy cập các PDA của nó, và không ai có thể giả mạo chữ ký của nó.  
+🧠 *Xác định được* — chúng được tạo ra bằng cách sử dụng các đầu vào cố định (gọi là `seeds`) cộng với ID chương trình của bạn  
+✍️ *Có khả năng ký giao dịch* — nhưng chỉ bằng cách sử dụng `invoke_signed()` với `seeds` của PDA bên trong chương trình của bạn
 
 In our bank program, we use two PDAs to store data in `state.rs`:
 ```rust

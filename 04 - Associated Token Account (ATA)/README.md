@@ -1,26 +1,27 @@
-# Part Four - Associated Token Account (ATA)
-Now that you’ve learned how to use PDAs to manage custom accounts, it’s time to master another fundamental building block of Solana development — Associated Token Accounts (ATAs). These are special accounts used to store SPL tokens in a predictable and wallet-friendly way.
+# Phần Bốn - Tài khoản Token Được Liên Kết (ATA)
 
-Whether you’re building a token faucet, a lending protocol, or a DAO treasury, you’ll need to understand how ATAs work to handle token transfers securely and efficiently.
+Bây giờ bạn đã học cách sử dụng PDA để quản lý các tài khoản tùy chỉnh, đã đến lúc ủy thác một khối xây dựng cơ bản khác của phát triển Solana - Các Tài khoản Token Được Liên Kết (ATA). Đây là các tài khoản đặc biệt được sử dụng để lưu trữ các token SPL bằng cách có thể dự đoán và thân thiện với ví.
 
-In this section, you will:  
-✅ Understand what ATAs are and why they’re important  
-✅ Mint your first SPL token from scratch  
-✅ Learn how to derive and create ATAs using the Anchor TS client  
-✅ Integrate ATAs into the Bank App to enable token deposits and withdrawals  
+Cho dù bạn đang xây dựng một vòi token, một giao thức cho vay, hoặc một kho tàng DAO, bạn sẽ cần hiểu cách ATA hoạt động để xử lý các chuyển giao hợp đồng một cách an toàn và hiệu quả.
 
-By the end of this part, you’ll be able to create, manage, and interact with SPL token accounts like a pro — setting the foundation for anything involving token transfers, rewards, or payments.  
-Let’s get started! 💰🚀
+Trong phần này, bạn sẽ:  
+✅ Hiểu ATA là gì và tại sao chúng lại quan trọng  
+✅ Hãy khai thác token SPL đầu tiên của bạn từ đầu  
+✅ Tìm hiểu cách lấy và tạo ATA bằng Anchor TS client  
+✅ Tích hợp ATA vào Ứng dụng Ngân hàng để cho phép gửi và rút token  
 
-### Remember the previous example: the Bank App 🏦
-In this session, we’ll extend the Bank App to support SPL tokens. Specifically, we’ll add two new instructions:
-+ `DepositToken` — allows users to deposit any SPL token into the bank
-+ `WithdrawToken` — lets users withdraw the same token they previously deposited
+Cho đến cuối phần này, bạn sẽ có thể tạo, quản lý và tương tác với các tài khoản token SPL giống như một chuyên gia - đặt nền tảng cho bất cứ điều gì liên quan đến chuyển giao token, phần thưởng hoặc thanh toán.  
+Hãy bắt đầu! 💰🚀
 
-This upgrade turns your Bank App from SOL-only to a fully token-aware vault — a major step toward real-world DeFi functionality. Let’s build it! 🧱💸
+### Hãy nhớ ví dụ trước đây: Ứng dụng Ngân hàng 🏦
+Trong phiên này, chúng tôi sẽ mở rộng Ứng dụng Ngân hàng để hỗ trợ các token SPL. Cụ thể, chúng tôi sẽ thêm hai lệnh mới:
++ `DepositToken` — cho phép người dùng gửi bất kỳ token SPL nào vào ngân hàng
++ `WithdrawToken` — cho phép người dùng rút token tương tự mà họ đã gửi trước đó
 
-### 1. What is an ATA?
-An ATA is actually a PDA (Program Derived Address) — it’s not randomly generated. It’s derived deterministically using seeds:
+Nâng cấp này biến Ứng dụng Ngân hàng của bạn từ chỉ SOL thành một kho tiền đầy đủ nhận thức về token — một bước lớn hướng tới chức năng DeFi thực tế. Hãy xây dựng nó! 🧱💸
+
+### 1. ATA là gì?
+Một ATA thực chất là một PDA (Program Derived Address) — nó không được tạo ngẫu nhiên. Nó được lấy một cách xác định bằng cách sử dụng hạt giống:
 ```ts
 [
   wallet_address,                 // The token owner's wallet address
