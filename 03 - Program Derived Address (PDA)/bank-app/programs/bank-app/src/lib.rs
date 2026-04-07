@@ -8,7 +8,7 @@ pub mod transfer_helper;
 
 use instructions::*;
 
-declare_id!("3q57ftWH75aKfxoNnV6Lu1n8LhV73xxKHAxPapL6Jvh7");
+declare_id!("67T9EkMyoWsDqNu39jYRm3qCKHS2MCFZ7LwPGxEJyKbX");
 
 #[program]
 pub mod bank_app {
@@ -20,5 +20,13 @@ pub mod bank_app {
 
     pub fn deposit(ctx: Context<Deposit>, deposit_amount: u64) -> Result<()> {
         return Deposit::process(ctx, deposit_amount);
+    }
+
+    pub fn withdraw(ctx: Context<Withdraw>, withdraw_amount: u64) -> Result<()> {
+        return Withdraw::process(ctx, withdraw_amount);
+    }
+
+    pub fn pause(ctx: Context<Pause>) -> Result<()> {
+        return Pause::process(ctx);
     }
 }
