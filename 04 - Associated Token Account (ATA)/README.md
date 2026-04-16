@@ -266,10 +266,30 @@ Và cuối cùng, đừng bao giờ quên viết xét nghiệm! Xác thực rằ
 Sau khi bạn hoàn thành những tác vụ này, ứng dụng Ngân hàng của bạn sẽ hỗ trợ đầy đủ các khoản gửi và rút token SPL thông qua ATA.
 🚀 Hãy bắt tay vào xây dựng!
 
-
-
-
-
-
-
-
+bank-app/
+├── Anchor.toml           # Cấu hình Anchor project
+├── Cargo.toml            # Dependencies cho TypeScript/Node.js
+├── package.json          # NPM packages
+├── tsconfig.json         # TypeScript config
+├── migrations/
+│   └── deploy.ts         # Script deploy program lên Solana
+├── programs/
+│   └── bank-app/
+│       ├── Cargo.toml    # Dependencies Rust cho program
+│       ├── Xargo.toml    # Extended Rust config
+│       └── src/
+│           ├── lib.rs         # Entry point chính
+│           ├── constant.rs    # Hằng số
+│           ├── error.rs       # Định nghĩa lỗi tùy chỉnh
+│           ├── state.rs       # Struct state (account data)
+│           ├── transfer_helper.rs  # Helper functions
+│           └── instructions/
+│               ├── mod.rs              # Module definition
+│               ├── initialize.rs       # Init bank
+│               ├── deposit.rs          # Deposit SOL
+│               ├── deposit_token.rs    # Deposit token SPL
+│               ├── withdraw.rs         # Withdraw SOL
+│               ├── withdraw_token.rs   # Withdraw token SPL
+│               └── pause.rs            # Pause/unpause
+└── tests/
+    └── bank-app.ts       # Test file TypeScript

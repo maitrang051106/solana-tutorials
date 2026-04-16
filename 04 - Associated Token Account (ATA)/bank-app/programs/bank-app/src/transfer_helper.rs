@@ -64,6 +64,17 @@ pub fn token_transfer_from_pda<'info>(
     pda_seeds: &[&[&[u8]]],
     amount: u64,
 ) -> Result<()> {
-    //Your code here
+    let transfer_ix = token::Transfer {
+        from,
+        authority,
+        to,
+    };
+
+    let cpi_ctx = CpiContext::new(
+        token_program.to_account_info(),
+        transfer_ix,
+    );
+
+    token::transfer(cpi_ctx.with_signer(pda_seeds), amount)?;
     Ok(())
 }

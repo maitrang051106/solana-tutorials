@@ -9,7 +9,6 @@ use crate::{
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
     #[account(
-        mut,
         seeds = [BANK_INFO_SEED],
         bump
     )]
@@ -20,7 +19,8 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [BANK_VAULT_SEED],
         bump,
-        owner = system_program::ID
+        // Có thể giữ hoặc bỏ dòng owner này đều được vì Unchecked mặc định là System
+        owner = system_program::ID 
     )]
     pub bank_vault: UncheckedAccount<'info>,
 
@@ -38,12 +38,40 @@ pub struct Withdraw<'info> {
 
 impl<'info> Withdraw<'info> {
     pub fn process(ctx: Context<Withdraw>, withdraw_amount: u64) -> Result<()> {
-        if ctx.accounts.bank_info.is_paused {
+        let bank_info = &mut ctx.accounts.bank_info;
+
+        if bank_info.is_paused {
             return Err(BankAppError::BankAppPaused.into());
         }
 
-        let pda_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.bump]]];
-        // Your code here
+        let user_reserve = &mut ctx.accounts.user_reserve;
+
+        // 1. Kiểm tra số dư sổ sách
+        if user_reserve.deposited_amount < withdraw_amount {
+            return Err(BankAppError::InsufficientFunds.into());
+        }
+
+        // ========================================================
+        // 2. CHUYỂN SOL (RÚT TIỀN TỪ KÉT BẰNG CPI CÓ CHỮ KÝ PDA)
+        // ========================================================
+        let bank_vault_bump = ctx.bumps.bank_vault;
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            BANK_VAULT_SEED,
+            &[bank_vault_bump],
+        ]];
+
+        let cpi_program = ctx.accounts.system_program.to_account_info();
+        let cpi_accounts = system_program::Transfer {
+            from: ctx.accounts.bank_vault.to_account_info(),
+            to: ctx.accounts.user.to_account_info(),
+        };
+        
+        // Gọi System Program kèm theo "con dấu" của Két sắt
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+        system_program::transfer(cpi_ctx, withdraw_amount)?;
+
+        // 3. Cập nhật lại sổ sách
+        user_reserve.deposited_amount -= withdraw_amount;
 
         Ok(())
     }
