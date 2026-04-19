@@ -88,10 +88,7 @@ describe("bank-app", () => {
     } catch {
       const tx = await program.methods.initialize()
         .accounts({
-          bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-          bankVault: BANK_APP_ACCOUNTS.bankVault,
           authority: provider.publicKey,
-          systemProgram: SystemProgram.programId
         }).rpc();
       console.log("Initialize signature: ", tx);
     }
@@ -100,11 +97,7 @@ describe("bank-app", () => {
   it("Is deposited!", async () => {
     const tx = await program.methods.deposit(new BN(1_000_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey),
         user: provider.publicKey,
-        systemProgram: SystemProgram.programId
       }).rpc();
     console.log("Deposit signature: ", tx);
 
@@ -116,15 +109,8 @@ describe("bank-app", () => {
     // Đã thay bằng biến tự động, bỏ preInstructions
     const tx = await program.methods.depositToken(new BN(1_000_000_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
         tokenMint: myTestMint,
-        userAta: myUserAta,
-        bankAta: myBankAta,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey, myTestMint),
         user: provider.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId
       }).rpc();
     console.log("Deposit token signature: ", tx);
 
@@ -135,20 +121,12 @@ describe("bank-app", () => {
   it("Is withdrawn!", async () => {
     await program.methods.deposit(new BN(1_000_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey),
         user: provider.publicKey,
-        systemProgram: SystemProgram.programId
       }).rpc();
 
     const tx = await program.methods.withdraw(new BN(500_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey),
         user: provider.publicKey,
-        systemProgram: SystemProgram.programId
       }).rpc();
     console.log("Withdraw signature: ", tx);
   });
@@ -157,28 +135,14 @@ describe("bank-app", () => {
     // Đã thay bằng biến tự động, bỏ preInstructions
     await program.methods.depositToken(new BN(1_000_000_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
         tokenMint: myTestMint,
-        userAta: myUserAta,
-        bankAta: myBankAta,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey, myTestMint),
         user: provider.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId
       }).rpc();
 
     const tx = await program.methods.withdrawToken(new BN(500_000_000))
       .accounts({
-        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-        bankVault: BANK_APP_ACCOUNTS.bankVault,
         tokenMint: myTestMint,
-        userAta: myUserAta,
-        bankAta: myBankAta,
-        userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey, myTestMint),
         user: provider.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId
       }).rpc();
     console.log("Withdraw token signature: ", tx);
   });
@@ -202,13 +166,9 @@ describe("bank-app", () => {
     try {
       await program.methods.withdraw(new BN(10_000_000)) 
         .accounts({
-          bankInfo: BANK_APP_ACCOUNTS.bankInfo,
-          bankVault: BANK_APP_ACCOUNTS.bankVault,
-          userReserve: BANK_APP_ACCOUNTS.userReserve(provider.publicKey),
           user: provider.publicKey,
-          systemProgram: SystemProgram.programId
         }).rpc();
-    } catch (error) {
+    } catch (error: any) {
       console.log("Withdraw correctly failed with insufficient funds: ", error.message)
     }
   });
