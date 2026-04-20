@@ -6,14 +6,17 @@ use crate::{
     state::{BankInfo, UserReserve},
 };
 
+// #[derive(Accounts)] defines the accounts required to run the Withdraw instruction.
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
+    // Read the bank's global info to check if it's paused.
     #[account(
         seeds = [BANK_INFO_SEED],
         bump
     )]
     pub bank_info: Box<Account<'info, BankInfo>>,
 
+    // The vault PDA. This is where the SOL is currently stored and where it will be withdrawn from.
     ///CHECK:
     #[account(
         mut,
@@ -24,6 +27,7 @@ pub struct Withdraw<'info> {
     )]
     pub bank_vault: UncheckedAccount<'info>,
 
+    // The user's reserve account. We need to check if they have enough balance to withdraw!
     #[account(
         mut,
         seeds = [USER_RESERVE_SEED, user.key().as_ref()],
@@ -31,6 +35,7 @@ pub struct Withdraw<'info> {
     )]
     pub user_reserve: Box<Account<'info, UserReserve>>,
 
+    // The user who wants to withdraw. They must sign to prove who they are.
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -40,20 +45,23 @@ impl<'info> Withdraw<'info> {
     pub fn process(ctx: Context<Withdraw>, withdraw_amount: u64) -> Result<()> {
         let bank_info = &mut ctx.accounts.bank_info;
 
+        // Step 1: Ensure the bank is not paused
         if bank_info.is_paused {
             return Err(BankAppError::BankAppPaused.into());
         }
 
         let user_reserve = &mut ctx.accounts.user_reserve;
 
-        // 1. Kiểm tra số dư sổ sách
+        // Step 2: Check if the user has enough deposited money (1. Kiểm tra số dư sổ sách)
         if user_reserve.deposited_amount < withdraw_amount {
             return Err(BankAppError::InsufficientFunds.into());
         }
 
         // ========================================================
-        // 2. CHUYỂN SOL (RÚT TIỀN TỪ KÉT BẰNG CPI CÓ CHỮ KÝ PDA)
+        // Step 3: Transfer SOL from Vault to User (2. CHUYỂN SOL (RÚT TIỀN TỪ KÉT BẰNG CPI CÓ CHỮ KÝ PDA))
         // ========================================================
+        // Because the Vault is a PDA, it doesn't have a private key. 
+        // We have to "sign" for it using the seeds we used to create it.
         let bank_vault_bump = ctx.bumps.bank_vault;
         let signer_seeds: &[&[&[u8]]] = &[&[
             BANK_VAULT_SEED,
@@ -66,11 +74,12 @@ impl<'info> Withdraw<'info> {
             to: ctx.accounts.user.to_account_info(),
         };
         
+        // Execute the transfer. CpiContext::new_with_signer allows the program to sign for the PDA.
         // Gọi System Program kèm theo "con dấu" của Két sắt
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
         system_program::transfer(cpi_ctx, withdraw_amount)?;
 
-        // 3. Cập nhật lại sổ sách
+        // Step 4: Update the user's balance in our bookkeeping (3. Cập nhật lại sổ sách)
         user_reserve.deposited_amount -= withdraw_amount;
 
         Ok(())
