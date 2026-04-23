@@ -1,3 +1,4 @@
+// This file contains the logic for the bank authority to invest deposited SOL into an external Staking App via CPI.
 use anchor_lang::{prelude::*, system_program};
 
 use crate::{
@@ -7,6 +8,7 @@ use crate::{
 };
 use staking_app::{cpi, program::StakingApp};
 
+// The `Invest` struct defines the accounts required for the CPI investment instruction.
 #[derive(Accounts)]
 pub struct Invest<'info> {
     #[account(
@@ -15,7 +17,7 @@ pub struct Invest<'info> {
     )]
     pub bank_info: Box<Account<'info, BankInfo>>,
 
-    ///CHECK:
+    ///CHECK: Bank Vault (PDA) that holds SOL deposits. This acts as the "user" making the stake in the Staking App.
     #[account(
         mut,
         seeds = [BANK_VAULT_SEED],
@@ -24,14 +26,16 @@ pub struct Invest<'info> {
     )]
     pub bank_vault: UncheckedAccount<'info>,
 
-    ///CHECK:
+    ///CHECK: The target vault in the external Staking App where SOL will be deposited.
     #[account(mut)]
     pub staking_vault: UncheckedAccount<'info>,
-    ///CHECK:
+    ///CHECK: The user info PDA in the Staking App that will track the bank vault's staked balance.
     #[account(mut)]
     pub staking_info: UncheckedAccount<'info>,
+    // The program ID of the external Staking App we are calling via CPI.
     pub staking_program: Program<'info, StakingApp>,
 
+    // Only the authorized bank manager can call this instruction.
     #[account(mut, address = bank_info.authority)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -43,8 +47,11 @@ impl<'info> Invest<'info> {
             return Err(BankAppError::BankAppPaused.into());
         }
 
-        let invest_vault_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.bump]]];
+        // We prepare the signer seeds because the Bank Vault PDA must "sign" the CPI call
+        // to authorize actions on its behalf within the Staking App.
+        let invest_vault_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.vault_bump]]];
 
+        // This makes the Cross-Program Invocation (CPI) to the `stake` instruction of the Staking App.
         cpi::stake(
             CpiContext::new_with_signer(
                 ctx.accounts.staking_program.to_account_info(),

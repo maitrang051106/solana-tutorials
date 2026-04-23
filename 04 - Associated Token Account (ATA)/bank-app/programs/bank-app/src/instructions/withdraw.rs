@@ -22,7 +22,6 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [BANK_VAULT_SEED],
         bump,
-        // Có thể giữ hoặc bỏ dòng owner này đều được vì Unchecked mặc định là System
         owner = system_program::ID 
     )]
     pub bank_vault: UncheckedAccount<'info>,

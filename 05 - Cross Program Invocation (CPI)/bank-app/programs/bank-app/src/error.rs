@@ -4,4 +4,10 @@ use anchor_lang::prelude::*;
 pub enum BankAppError {
     #[msg("The bank app is currently paused.")]
     BankAppPaused,
+
+    #[msg("Insufficient funds to withdraw.")]
+    InsufficientFunds,
+
+    #[msg("Insufficient funds to withdraw token.")]
+    InsufficientFundsToken,
 }
