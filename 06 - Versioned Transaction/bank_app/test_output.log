@@ -1,0 +1,178 @@
+warning: unexpected `cfg` condition value: `custom-heap`
+ --> programs/bank_app/src/lib.rs:6:1
+  |
+6 | #[program]
+  | ^^^^^^^^^^
+  |
+  = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+  = help: consider adding `custom-heap` as a feature in `Cargo.toml`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+  = note: `#[warn(unexpected_cfgs)]` on by default
+  = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-panic`
+ --> programs/bank_app/src/lib.rs:6:1
+  |
+6 | #[program]
+  | ^^^^^^^^^^
+  |
+  = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+  = help: consider adding `custom-panic` as a feature in `Cargo.toml`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+  = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `Mint`
+ --> programs/bank_app/src/lib.rs:3:31
+  |
+3 | use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+  |                               ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+ --> programs/bank_app/src/lib.rs:6:1
+  |
+6 | #[program]
+  | ^^^^^^^^^^
+  |
+  = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+  = help: consider adding `anchor-debug` as a feature in `Cargo.toml`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+  = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+ --> programs/bank_app/src/lib.rs:6:1
+  |
+6 | #[program]
+  | ^^^^^^^^^^
+  |
+  = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+  = help: consider adding `anchor-debug` as a feature in `Cargo.toml`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+  = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/bank_app/src/lib.rs:58:10
+   |
+58 | #[derive(Accounts)]
+   |          ^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = help: consider adding `anchor-debug` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/bank_app/src/lib.rs:77:10
+   |
+77 | #[derive(Accounts)]
+   |          ^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = help: consider adding `anchor-debug` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/bank_app/src/lib.rs:94:10
+   |
+94 | #[derive(Accounts)]
+   |          ^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = help: consider adding `anchor-debug` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: use of deprecated method `anchor_lang::prelude::AccountInfo::<'a>::realloc`: Use AccountInfo::resize() instead
+ --> programs/bank_app/src/lib.rs:6:1
+  |
+6 | #[program]
+  | ^^^^^^^^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+  = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `bank_app` (lib) generated 14 warnings (5 duplicates) (run `cargo fix --lib -p bank_app` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.59s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running unittests src/lib.rs (/home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/target/debug/deps/bank_app-a7b9b37da4c3c3ec)
+
+Found a 'test' script in the Anchor.toml. Running it as a test suite!
+
+Running test suite: "/home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/Anchor.toml"
+
+yarn run v1.22.22
+warning ../../package.json: No license field
+$ '/home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/node_modules/.bin/ts-mocha' -p ./tsconfig.json -t 1000000 'tests/**/*.ts'
+(node:29485) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/maitrang051106/solana-tutorials/06%20-%20Versioned%20Transaction/bank_app/tests/alt_helper.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+  bank_app_batch
+    1) Creates and extends ALT for Batch Transactions
+    2) Batch SOL Deposits using Versioned Transaction
+    3) Batch Token Deposits using Versioned Transaction
+    4) Handles Errors: Insufficient Token Balance
+Legacy Tx Size: 890 bytes
+    ✔ Legacy Transaction comparison (Size Limit)
+
+
+  1 passing (6s)
+  4 failing
+
+  1) bank_app_batch
+       Creates and extends ALT for Batch Transactions:
+     Error: Simulation failed. 
+Message: Transaction simulation failed: Error processing Instruction 0: invalid instruction data. 
+Logs: 
+[
+  "Program AddressLookupTab1e1111111111111111111111111 invoke [1]",
+  "Program log: Instruction: CreateLookupTable",
+  "Program log: 18 is not a recent slot",
+  "Program log: Error: InvalidInstructionData",
+  "Program AddressLookupTab1e1111111111111111111111111 consumed 1965 of 200000 compute units",
+  "Program AddressLookupTab1e1111111111111111111111111 failed: invalid instruction data"
+]. 
+Catch the `SendTransactionError` and call `getLogs()` on it for full details.
+      at Connection.sendEncodedTransaction (node_modules/@solana/web3.js/src/connection.ts:6053:13)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at Connection.sendRawTransaction (node_modules/@solana/web3.js/src/connection.ts:6009:20)
+      at Connection.sendTransaction (node_modules/@solana/web3.js/src/connection.ts:5958:14)
+
+  2) bank_app_batch
+       Batch SOL Deposits using Versioned Transaction:
+     TypeError: Cannot read properties of undefined (reading 'toBase58')
+      at Connection.getAccountInfoAndContext (node_modules/@solana/web3.js/src/connection.ts:3558:18)
+      at Connection.getAddressLookupTable (node_modules/@solana/web3.js/src/connection.ts:5578:54)
+      at /home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/tests/bank_app.ts:122:50
+      at Generator.next (<anonymous>)
+      at fulfilled (tests/bank_app.ts:38:58)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+  3) bank_app_batch
+       Batch Token Deposits using Versioned Transaction:
+     TypeError: Cannot read properties of undefined (reading 'toBase58')
+      at Connection.getAccountInfoAndContext (node_modules/@solana/web3.js/src/connection.ts:3558:18)
+      at Connection.getAddressLookupTable (node_modules/@solana/web3.js/src/connection.ts:5578:54)
+      at /home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/tests/bank_app.ts:155:50
+      at Generator.next (<anonymous>)
+      at fulfilled (tests/bank_app.ts:38:58)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+  4) bank_app_batch
+       Handles Errors: Insufficient Token Balance:
+     TypeError: Cannot read properties of undefined (reading 'toBase58')
+      at Connection.getAccountInfoAndContext (node_modules/@solana/web3.js/src/connection.ts:3558:18)
+      at Connection.getAddressLookupTable (node_modules/@solana/web3.js/src/connection.ts:5578:54)
+      at /home/maitrang051106/solana-tutorials/06 - Versioned Transaction/bank_app/tests/bank_app.ts:186:50
+      at Generator.next (<anonymous>)
+      at fulfilled (tests/bank_app.ts:38:58)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+
+
+error Command failed with exit code 4.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
