@@ -8,6 +8,7 @@ import {
   TransactionMessage, 
   VersionedTransaction,
   Transaction,
+  SystemProgram,
 } from "@solana/web3.js";
 import { 
   createMint, 
@@ -19,6 +20,22 @@ import {
 } from "@solana/spl-token";
 import { getOrCreateAndExtendALT, ALTCache } from "./alt_helper";
 import { expect } from "chai";
+import * as fs from 'fs';
+
+function getOrGenerateKeypair(filename: string): Keypair {
+  try {
+    if (fs.existsSync(filename)) {
+      const secretKeyString = fs.readFileSync(filename, 'utf8');
+      const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
+      return Keypair.fromSecretKey(secretKey);
+    }
+  } catch (e) {
+    console.warn(`Could not read keypair from ${filename}, generating a new one.`);
+  }
+  const keypair = Keypair.generate();
+  fs.writeFileSync(filename, JSON.stringify(Array.from(keypair.secretKey)));
+  return keypair;
+}
 
 describe("bank_app_batch", () => {
   // Configure the client to use the local cluster (solana-test-validator).
@@ -36,8 +53,8 @@ describe("bank_app_batch", () => {
   );
 
   // Generate new keypairs for testing.
-  const admin = Keypair.generate();
-  const user = Keypair.generate();
+  const admin = getOrGenerateKeypair('admin.json');
+  const user = getOrGenerateKeypair('user.json');
 
   // Test setup variables for our SPL tokens.
   const NUM_TOKENS = 3;
@@ -49,13 +66,27 @@ describe("bank_app_batch", () => {
 
   // before() runs once before any 'it' tests block.
   // We use this to set up the environment: airdropping SOL, initializing the bank, and minting tokens.
+
   before(async () => {
-    // 1. Airdrop some native SOL to the admin and user so they can pay for transaction fees.
-    const latestBlockhash = await connection.getLatestBlockhash();
-    const sig1 = await connection.requestAirdrop(admin.publicKey, 10 * LAMPORTS_PER_SOL);
-    const sig2 = await connection.requestAirdrop(user.publicKey, 10 * LAMPORTS_PER_SOL);
-    await connection.confirmTransaction({ signature: sig1, ...latestBlockhash });
-    await connection.confirmTransaction({ signature: sig2, ...latestBlockhash });
+    console.log("👤 Admin Address:", admin.publicKey.toBase58());
+    console.log("👤 User Address:", user.publicKey.toBase58());
+
+    // Create a transaction to transfer SOL from the provider's main account to user1 and user2
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: provider.publicKey,
+        toPubkey: admin.publicKey,
+        lamports: 0.1 * LAMPORTS_PER_SOL,
+      }),
+      SystemProgram.transfer({
+        fromPubkey: provider.publicKey,
+        toPubkey: user.publicKey,
+        lamports: 0.1 * LAMPORTS_PER_SOL,
+      })
+    );
+
+    // Send and confirm the transaction using the provider
+    await provider.sendAndConfirm(transaction);
 
     // 2. Initialize the Bank Smart Contract.
     // This creates the bank vault PDA on-chain.
@@ -160,7 +191,11 @@ describe("bank_app_batch", () => {
 
     // Send the batched transaction to the network.
     const signature = await connection.sendTransaction(transaction);
-    await connection.confirmTransaction({ signature, ...latestBlockhash });
+    await connection.confirmTransaction({
+    signature: signature,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  }, "confirmed");
 
     console.log(`Batch SOL Deposit successful! Signature: ${signature}`);
   });
@@ -183,7 +218,9 @@ describe("bank_app_batch", () => {
 
     const latestBlockhash = await connection.getLatestBlockhash();
     const lookupTableAccount = (await connection.getAddressLookupTable(lookupTableAddress)).value;
-
+    if (!lookupTableAccount) {
+      throw new Error("Lookup Table account not found");
+    }
     // Again, compile the V0 message using our lookup table.
     const messageV0 = new TransactionMessage({
       payerKey: user.publicKey,
@@ -195,7 +232,11 @@ describe("bank_app_batch", () => {
     transaction.sign([user]);
 
     const signature = await connection.sendTransaction(transaction);
-    await connection.confirmTransaction({ signature, ...latestBlockhash });
+    await connection.confirmTransaction({
+      signature: signature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    }, "confirmed");
 
     console.log(`Batch Token Deposit successful! Signature: ${signature}`);
   });

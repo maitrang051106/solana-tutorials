@@ -1,11 +1,27 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { BankApp } from "../target/types/bank_app";
-import { PublicKey, SystemProgram, TransactionInstruction, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction, TransactionInstruction, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { BN } from "bn.js";
 // FIX: Make sure to import all required token functions
 import { createAssociatedTokenAccountInstruction, createMint, getAssociatedTokenAddressSync, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { StakingApp } from "../target/types/staking_app";
+import * as fs from 'fs';
+
+function getOrGenerateKeypair(filename: string): Keypair {
+  try {
+    if (fs.existsSync(filename)) {
+      const secretKeyString = fs.readFileSync(filename, 'utf8');
+      const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
+      return Keypair.fromSecretKey(secretKey);
+    }
+  } catch (e) {
+    console.warn(`Could not read keypair from ${filename}, generating a new one.`);
+  }
+  const keypair = Keypair.generate();
+  fs.writeFileSync(filename, JSON.stringify(Array.from(keypair.secretKey)));
+  return keypair;
+}
 
 describe("bank-app", () => {
   // Configure the client to use the local cluster.
@@ -41,27 +57,29 @@ describe("bank-app", () => {
     }
   }
 
-  const user1 = Keypair.generate();
-  const user2 = Keypair.generate();
+  const user1 = getOrGenerateKeypair('user1.json');
+  const user2 = getOrGenerateKeypair('user2.json');
 
   before(async () => {
-    // Get the latest blockhash to confirm transactions (prevents deprecation errors)
-    const latestBlockHash = await provider.connection.getLatestBlockhash();
+    console.log("👤 User 1 Address:", user1.publicKey.toBase58());
+    console.log("👤 User 2 Address:", user2.publicKey.toBase58());
 
-    // Airdrop SOL to 2 users to cover transaction fees
-    const sig1 = await provider.connection.requestAirdrop(user1.publicKey, 2 * LAMPORTS_PER_SOL);
-    await provider.connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      signature: sig1,
-    });
+    // Create a transaction to transfer SOL from the provider's main account to user1 and user2
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: provider.publicKey,
+        toPubkey: user1.publicKey,
+        lamports: 0.1 * LAMPORTS_PER_SOL,
+      }),
+      SystemProgram.transfer({
+        fromPubkey: provider.publicKey,
+        toPubkey: user2.publicKey,
+        lamports: 0.1 * LAMPORTS_PER_SOL,
+      })
+    );
 
-    const sig2 = await provider.connection.requestAirdrop(user2.publicKey, 2 * LAMPORTS_PER_SOL);
-    await provider.connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      signature: sig2,
-    });
+    // Send and confirm the transaction using the provider
+    await provider.sendAndConfirm(transaction);
   });
 
   // ------------------------------------------------------------------------

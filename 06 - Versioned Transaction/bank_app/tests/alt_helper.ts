@@ -37,7 +37,7 @@ export async function getOrCreateAndExtendALT(
     
     // To create an ALT, we need a recent block slot.
     // We use "finalized" to ensure the network fully recognizes this slot.
-    const slot = await connection.getSlot("finalized");
+    const slot = Math.max(0, (await connection.getSlot("confirmed")) - 1);
     
     // AddressLookupTableProgram provides the instruction to create the table.
     // It returns the instruction (to be sent) and the predicted address of the new ALT.
