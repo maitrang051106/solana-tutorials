@@ -46,6 +46,7 @@ impl<'info> Initialize<'info> {
         // Assign the authority to the person who initialized it.
         bank_info.authority = ctx.accounts.authority.key();
         bank_info.is_paused = false; // Initially, the bank is active.
+        bank_info.info_bump = ctx.bumps.bank_info;
         bank_info.vault_bump = ctx.bumps.bank_vault; // Store the vault's bump seed for future CPI signing.
 
         msg!("bank app initialized!");

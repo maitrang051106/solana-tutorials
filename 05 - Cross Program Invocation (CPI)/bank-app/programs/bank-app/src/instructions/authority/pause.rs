@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::constant::BANK_INFO_SEED;
 use crate::state::BankInfo;
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Pause<'info> {
@@ -22,7 +22,10 @@ impl<'info> Pause<'info> {
         // Toggle the pause state
         ctx.accounts.bank_info.is_paused = !ctx.accounts.bank_info.is_paused;
 
-        msg!("Bank pause state toggled. Paused: {}", ctx.accounts.bank_info.is_paused);
+        msg!(
+            "Bank pause state toggled. Paused: {}",
+            ctx.accounts.bank_info.is_paused
+        );
         Ok(())
     }
 }

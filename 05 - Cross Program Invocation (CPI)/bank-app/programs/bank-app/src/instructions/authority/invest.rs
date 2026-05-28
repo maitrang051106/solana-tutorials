@@ -49,7 +49,8 @@ impl<'info> Invest<'info> {
 
         // We prepare the signer seeds because the Bank Vault PDA must "sign" the CPI call
         // to authorize actions on its behalf within the Staking App.
-        let invest_vault_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.vault_bump]]];
+        let invest_vault_seeds: &[&[&[u8]]] =
+            &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.vault_bump]]];
 
         // This makes the Cross-Program Invocation (CPI) to the `stake` instruction of the Staking App.
         cpi::stake(

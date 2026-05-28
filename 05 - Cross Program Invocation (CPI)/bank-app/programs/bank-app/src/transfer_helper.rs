@@ -42,11 +42,7 @@ pub fn sol_transfer_from_pda<'info>(
     // invoke_signed is like invoke, but it allows the program to sign on behalf of a PDA
     invoke_signed(
         &ix,
-        &[
-            source,
-            destination,
-            system_program.to_account_info(),
-        ],
+        &[source, destination, system_program.to_account_info()],
         pda_seeds,
     )?;
     Ok(())
@@ -93,10 +89,7 @@ pub fn token_transfer_from_pda<'info>(
         to,
     };
 
-    let cpi_ctx = CpiContext::new(
-        token_program.to_account_info(),
-        transfer_ix,
-    );
+    let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_ix);
 
     // .with_signer() is used because the authority is a PDA, so the program signs for it
     token::transfer(cpi_ctx.with_signer(pda_seeds), amount)?;

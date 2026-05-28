@@ -1,5 +1,6 @@
 // This file handles the logic for users depositing native SOL into the Bank App.
 use anchor_lang::{prelude::*, system_program};
+use staking_app::UserInfo;
 
 use crate::{
     constant::{BANK_ASSET_SEED, BANK_INFO_SEED, BANK_VAULT_SEED, USER_RESERVE_SEED},
@@ -46,6 +47,9 @@ pub struct Deposit<'info> {
     )]
     pub bank_asset: Box<Account<'info, BankAsset>>,
 
+    /// CHECK: The user info PDA in the external Staking App, used to read the staked balance.
+    pub staking_info: UncheckedAccount<'info>,
+
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -60,7 +64,24 @@ impl<'info> Deposit<'info> {
         let bank_asset = &mut ctx.accounts.bank_asset;
         let user_reserve = &mut ctx.accounts.user_reserve;
 
-        let total_assets_before = ctx.accounts.bank_vault.lamports();
+        let vault_rent = Rent::get()?.minimum_balance(ctx.accounts.bank_vault.data_len());
+        let liquid_assets = ctx
+            .accounts
+            .bank_vault
+            .lamports()
+            .saturating_sub(vault_rent);
+
+        // Read staked assets from the external staking info account if it has been initialized
+        let staked_assets = if ctx.accounts.staking_info.to_account_info().data_is_empty() {
+            0
+        } else {
+            let staking_data = ctx.accounts.staking_info.try_borrow_data()?;
+            let staking_account = UserInfo::try_deserialize(&mut &staking_data[..])?;
+            staking_account.amount
+        };
+
+        // Total assets is the sum of liquid SOL and staked SOL
+        let total_assets_before = liquid_assets + staked_assets;
         let total_shares = bank_asset.total_shares;
 
         let shares_to_mint = if total_shares == 0 || total_assets_before == 0 {

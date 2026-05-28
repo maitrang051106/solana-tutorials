@@ -104,16 +104,13 @@ impl<'info> WithdrawToken<'info> {
 
         // Step 3: Prepare the seeds so the program can sign on behalf of the vault PDA
         let bank_vault_bump = ctx.accounts.bank_info.vault_bump;
-        let signer_seeds: &[&[&[u8]]] = &[&[
-            BANK_VAULT_SEED,
-            &[bank_vault_bump],
-        ]];
+        let signer_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[bank_vault_bump]]];
 
         // Step 4: Transfer the SPL tokens from the bank's ATA to the user's ATA
         token_transfer_from_pda(
             ctx.accounts.bank_ata.to_account_info(), // From: Bank's token account
             ctx.accounts.bank_vault.to_account_info(), // Authority: Bank vault PDA (needs seeds to sign)
-            ctx.accounts.user_ata.to_account_info(), // To: User's token account
+            ctx.accounts.user_ata.to_account_info(),   // To: User's token account
             &ctx.accounts.token_program,
             signer_seeds, // The seeds used to sign for the PDA authority
             amount_to_return,

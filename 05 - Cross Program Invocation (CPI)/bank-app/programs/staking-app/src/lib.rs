@@ -26,8 +26,17 @@ pub mod staking_app {
             current_time - user_info.last_update_time
         };
 
-        // Calculate and add pending rewards based on a fixed APR of 5%.
-        user_info.amount += user_info.amount * STAKING_APR * pass_time / 100 / SECOND_PER_YEAR;
+        // Calculate pending rewards and fund them from the payer so the vault actually grows.
+        let reward_amount = user_info.amount * STAKING_APR * pass_time / 100 / SECOND_PER_YEAR;
+        if reward_amount != 0 {
+            sol_transfer_from_user(
+                &ctx.accounts.payer,
+                ctx.accounts.staking_vault.to_account_info(),
+                &ctx.accounts.system_program,
+                reward_amount,
+            )?;
+            user_info.amount += reward_amount;
+        }
         user_info.last_update_time = current_time;
 
         if amount != 0 {

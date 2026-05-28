@@ -26,6 +26,10 @@ pub mod bank_app {
         return Deposit::process(ctx, deposit_amount);
     }
 
+    pub fn withdraw(ctx: Context<Withdraw>, withdraw_shares: u64) -> Result<()> {
+        return Withdraw::process(ctx, withdraw_shares);
+    }
+
     pub fn deposit_token(ctx: Context<DepositToken>, deposit_amount: u64) -> Result<()> {
         return DepositToken::process(ctx, deposit_amount);
     }

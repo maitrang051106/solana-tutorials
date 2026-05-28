@@ -1,22 +1,28 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { BankApp } from "../target/types/bank_app";
-import { PublicKey, SystemProgram, Transaction, TransactionInstruction, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  Keypair,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
 import { BN } from "bn.js";
-// FIX: Make sure to import all required token functions
-import { createAssociatedTokenAccountInstruction, createMint, getAssociatedTokenAddressSync, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { StakingApp } from "../target/types/staking_app";
-import * as fs from 'fs';
+import * as fs from "fs";
 
 function getOrGenerateKeypair(filename: string): Keypair {
   try {
     if (fs.existsSync(filename)) {
-      const secretKeyString = fs.readFileSync(filename, 'utf8');
+      const secretKeyString = fs.readFileSync(filename, "utf8");
       const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
       return Keypair.fromSecretKey(secretKey);
     }
   } catch (e) {
-    console.warn(`Could not read keypair from ${filename}, generating a new one.`);
+    console.warn(
+      `Could not read keypair from ${filename}, generating a new one.`
+    );
   }
   const keypair = Keypair.generate();
   fs.writeFileSync(filename, JSON.stringify(Array.from(keypair.secretKey)));
@@ -25,7 +31,7 @@ function getOrGenerateKeypair(filename: string): Keypair {
 
 describe("bank-app", () => {
   // Configure the client to use the local cluster.
-  const provider = anchor.AnchorProvider.env()
+  const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
   const program = anchor.workspace.BankApp as Program<BankApp>;
@@ -40,25 +46,88 @@ describe("bank-app", () => {
       [Buffer.from("BANK_VAULT_SEED")],
       program.programId
     )[0],
-    userReserve: (pubkey: PublicKey, tokenMint?: PublicKey) => {
-      let SEEDS = [
-        Buffer.from("USER_RESERVE_SEED"),
-        pubkey.toBuffer(),
-      ]
+    userReserve: (pubkey: PublicKey) => {
+      const SEEDS = [Buffer.from("USER_RESERVE_SEED"), pubkey.toBuffer()];
 
-      if (tokenMint != undefined) {
-        SEEDS.push(tokenMint.toBuffer())
-      }
+      return PublicKey.findProgramAddressSync(SEEDS, program.programId)[0];
+    },
+  };
 
-      return PublicKey.findProgramAddressSync(
-        SEEDS,
-        program.programId
-      )[0]
+  const STAKING_APP_ACCOUNTS = {
+    stakingVault: PublicKey.findProgramAddressSync(
+      [Buffer.from("STAKING_VAULT")],
+      stakingProgram.programId
+    )[0],
+    stakingInfo: PublicKey.findProgramAddressSync(
+      [Buffer.from("USER_INFO"), BANK_APP_ACCOUNTS.bankVault.toBuffer()],
+      stakingProgram.programId
+    )[0],
+  };
+
+  const user1 = getOrGenerateKeypair("user1.json");
+  const user2 = getOrGenerateKeypair("user2.json");
+  const depositAmount = new BN(1_000_000);
+  const bankAsset = PublicKey.findProgramAddressSync(
+    [Buffer.from("BANK_ASSET_SEED")],
+    program.programId
+  )[0];
+
+  const invest = async (amount: BN, isStake: boolean) => {
+    return program.methods
+      .invest(amount, isStake)
+      .accounts({
+        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
+        bankVault: BANK_APP_ACCOUNTS.bankVault,
+        stakingVault: STAKING_APP_ACCOUNTS.stakingVault,
+        stakingInfo: STAKING_APP_ACCOUNTS.stakingInfo,
+        stakingProgram: stakingProgram.programId,
+        authority: provider.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  };
+
+  const deposit = async (user: Keypair, amount: BN) => {
+    return program.methods
+      .deposit(amount)
+      .accounts({
+        user: user.publicKey,
+        stakingInfo: STAKING_APP_ACCOUNTS.stakingInfo,
+      })
+      .signers([user])
+      .rpc();
+  };
+
+  const withdraw = async (user: Keypair, shares: BN) => {
+    return (program.methods as any)
+      .withdraw(shares)
+      .accounts({
+        user: user.publicKey,
+        stakingInfo: STAKING_APP_ACCOUNTS.stakingInfo,
+      })
+      .signers([user])
+      .rpc();
+  };
+
+  const getBankTotalAssets = async () => {
+    const vaultBalance = await provider.connection.getBalance(BANK_APP_ACCOUNTS.bankVault);
+    const vaultRent = await provider.connection.getMinimumBalanceForRentExemption(0);
+    const liquidValue = new BN(Math.max(vaultBalance - vaultRent, 0));
+
+    let stakedValue = new BN(0);
+    try {
+      const stakingInfo = await stakingProgram.account.userInfo.fetch(STAKING_APP_ACCOUNTS.stakingInfo);
+      stakedValue = stakingInfo.amount;
+    } catch (e) {
+      // Staking info account not initialized yet
     }
-  }
 
-  const user1 = getOrGenerateKeypair('user1.json');
-  const user2 = getOrGenerateKeypair('user2.json');
+    return {
+      liquidValue,
+      stakedValue,
+      totalAssets: liquidValue.add(stakedValue)
+    };
+  };
 
   before(async () => {
     console.log("👤 User 1 Address:", user1.publicKey.toBase58());
@@ -85,169 +154,128 @@ describe("bank-app", () => {
   // ------------------------------------------------------------------------
   // TEST: INITIALIZE
   // ------------------------------------------------------------------------
-  // Initializes the bank app by creating the `bankInfo` and `bankVault` PDAs.
-  // We only pass `authority` because Anchor automatically resolves the PDAs and SystemProgram.
   it("Is initialized!", async () => {
     try {
-      const bankInfo = await program.account.bankInfo.fetch(BANK_APP_ACCOUNTS.bankInfo)
-      console.log("Bank info: ", bankInfo)
+      const bankInfo = await program.account.bankInfo.fetch(
+        BANK_APP_ACCOUNTS.bankInfo
+      );
+      console.log("Bank info: ", bankInfo);
     } catch {
-      const tx = await program.methods.initialize()
+      const tx = await program.methods
+        .initialize()
         .accounts({
           authority: provider.publicKey,
-        }).rpc();
+        })
+        .rpc();
       console.log("Initialize signature: ", tx);
     }
   });
 
   // ------------------------------------------------------------------------
-  // TEST: DEPOSIT SOL
+  // TEST: DEPOSITS, STAKES, UPDATES BANK VALUE
   // ------------------------------------------------------------------------
-  // Calls the `deposit` instruction to transfer native SOL to the bank vault.
-  // Anchor handles resolving all the required PDAs (like `bankVault` and `userReserve`).
-  
-  let last_time: number; // FIX: Removed the Rust 'mut' keyword
+  it("Deposits, stakes, and updates bank value", async () => {
+    console.log("\n--- STEP 1: User 1 Deposits 1,000,000 lamports ---");
+    await deposit(user1, depositAmount);
+    let user1Reserve = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user1.publicKey));
+    console.log("User 1 Shares:", user1Reserve.shares.toString());
 
-  it("Is deposited!", async () => {
-    // User 1 deposits 1,000,000 SOL (lamports)
-    const tx = await program.methods.deposit(new BN(1_000_000))
-      .accounts({
-        user: user1.publicKey,
-      })
-      .signers([user1])
-      .rpc();
-    console.log("Deposit signature (User1): ", tx);
-    
-    last_time = new Date().getTime();
-    const userReserve1 = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user1.publicKey))
-    console.log("User1 reserve (shares): ", userReserve1.shares.toString())
+    console.log("\n--- STEP 2: Bank stakes User 1's deposit ---");
+    await invest(depositAmount, true);
+    let assets = await getBankTotalAssets();
+    console.log("Bank Liquid SOL:", assets.liquidValue.toString());
+    console.log("Bank Staked SOL:", assets.stakedValue.toString());
+    console.log("Bank Total Assets:", assets.totalAssets.toString());
 
-    // Pause the program for 1 second
+    console.log("\n--- STEP 3 & 4: Wait 1s, trigger yield calculation, and return Bank Balance (1) ---");
     await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Trigger on-chain yield calculation by sending a 0-SOL stake update
+    await invest(new BN(0), true);
+    assets = await getBankTotalAssets();
+    console.log("Updated Bank Liquid SOL:", assets.liquidValue.toString());
+    console.log("Updated Bank Staked SOL (including yield):", assets.stakedValue.toString());
+    console.log("Bank Balance (1) (Total Assets):", assets.totalAssets.toString());
 
-    // User 2 deposits 2,000,000 SOL (lamports)
-    const tx2 = await program.methods.deposit(new BN(2_000_000))
-      .accounts({
-        user: user2.publicKey,
-      })
-      .signers([user2])
-      .rpc();
-    console.log("Deposit signature (User2): ", tx2);
-    
-    last_time = new Date().getTime();
-    const userReserve2 = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user2.publicKey))
-    console.log("User2 reserve (shares): ", userReserve2.shares.toString())
+    console.log("\n--- STEP 5 & 6: User 2 deposits 1,000,000 lamports ---");
+    await deposit(user2, depositAmount);
+    let user2Reserve = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user2.publicKey));
+    console.log("User 2 Shares (calculated using new Bank value):", user2Reserve.shares.toString());
+
+    console.log("\n--- STEP 7: Bank stakes the combined capital (User 2's deposit) ---");
+    await invest(depositAmount, true);
+    assets = await getBankTotalAssets();
+    console.log("Bank Liquid SOL:", assets.liquidValue.toString());
+    console.log("Bank Staked SOL:", assets.stakedValue.toString());
+    console.log("Bank Total Assets:", assets.totalAssets.toString());
+
+    console.log("\n--- STEP 8 & 9: Wait 1s, trigger yield calculation, and return Bank Balance after staking ---");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Trigger on-chain yield calculation
+    await invest(new BN(0), true);
+    assets = await getBankTotalAssets();
+    console.log("Updated Bank Liquid SOL:", assets.liquidValue.toString());
+    console.log("Updated Bank Staked SOL (after 2nd stake):", assets.stakedValue.toString());
+    console.log("Bank Balance (2) (Total Assets):", assets.totalAssets.toString());
   });
 
   // ------------------------------------------------------------------------
-  // TEST: CHECK BALANCES
+  // TEST: WITHDRAW AND COMPARE
   // ------------------------------------------------------------------------
-  it("Check actual SOL balances after 2 seconds", async () => {
-    console.log("\n⏳ Waiting for 2 seconds...");
-    // Pause the program for 2 seconds securely
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+  it("Withdraws both users and compares results", async () => {
+    let assets = await getBankTotalAssets();
+    let currentStaked = assets.stakedValue;
 
-    // 1. Find the PDA of the Bank Asset account (Where total shares are stored)
-    const bankAssetPda = PublicKey.findProgramAddressSync(
-      [Buffer.from("BANK_ASSET_SEED")],
-      program.programId
-    )[0];
-
-    // 2. Fetch the Bank's overall data
-    const bankAsset = await program.account.bankAsset.fetch(bankAssetPda);
-    const totalShares = bankAsset.totalShares;
-    
-    // Get the actual SOL balance currently sitting in the Vault
-    const vaultBalance = await provider.connection.getBalance(BANK_APP_ACCOUNTS.bankVault);
-
-    console.log("🏦 --- BANK OVERVIEW ---");
-    console.log("Total Issued Shares: ", totalShares.toString());
-    console.log("Total SOL in Vault (lamports): ", vaultBalance.toString());
-
-    // 3. Calculate and convert for User 1
-    const userReserve1 = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user1.publicKey));
-    const user1Shares = userReserve1.shares;
-    
-    // Formula: (User 1 Shares * Total SOL in Vault) / Total Shares
-    const user1ActualSol = (user1Shares.mul(new BN(vaultBalance))).div(totalShares);
-
-    console.log("\n👤 --- CHECKING USER 1 ---");
-    console.log("Shares currently held: ", user1Shares.toString());
-    console.log("💰 Actual converted asset value: ", user1ActualSol.toString(), " lamports");
-
-    // 4. Calculate and convert for User 2
-    const userReserve2 = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user2.publicKey));
-    const user2Shares = userReserve2.shares;
-    
-    // Formula: (User 2 Shares * Total SOL in Vault) / Total Shares
-    const user2ActualSol = (user2Shares.mul(new BN(vaultBalance))).div(totalShares);
-
-    console.log("\n👤 --- CHECKING USER 2 ---");
-    console.log("Shares currently held: ", user2Shares.toString());
-    console.log("💰 Actual converted asset value: ", user2ActualSol.toString(), " lamports");
-    console.log("------------------------------------------\n");
-  });
-
-  // ------------------------------------------------------------------------
-  // TEST: DEPOSIT SPL TOKEN
-  // ------------------------------------------------------------------------
-  // Deposits SPL tokens. We construct the pre-instructions to create the Bank's ATA
-  // if it doesn't exist yet, then we call `depositToken`.
-  it("Is deposited token!", async () => {
-    // 1. Mint a brand new test Token on the network
-    const tokenMint = await createMint(
-      provider.connection,
-      user1, // user1 pays the fee to create the token
-      user1.publicKey, // user1 is the mint authority
-      null,
-      6 // Decimals
-    );
-    console.log("Created test Token Mint: ", tokenMint.toBase58());
-    
-    // 2. Create an ATA for user1 and mint 5 billion tokens to it for testing
-    const userAtaAccount = await getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      user1,
-      tokenMint,
-      user1.publicKey
-    );
-    const userAta = userAtaAccount.address;
-
-    await mintTo(
-      provider.connection,
-      user1,
-      tokenMint,
-      userAta,
-      user1.publicKey, // Mint authority belongs to user1
-      5_000_000_000 // Mint 5 billion tokens
-    );
-
-    // 3. Create an ATA for the Bank's Vault (if it doesn't exist)
-    let bankAta = getAssociatedTokenAddressSync(tokenMint, BANK_APP_ACCOUNTS.bankVault, true);
-
-    let preInstructions: TransactionInstruction[] = []
-    if (await provider.connection.getAccountInfo(bankAta) == null) {
-      preInstructions.push(createAssociatedTokenAccountInstruction(
-        user1.publicKey, // user1 pays for the ATA creation
-        bankAta,
-        BANK_APP_ACCOUNTS.bankVault,
-        tokenMint
-      ))
+    console.log("\n--- STEP 10: Unstake everything back to bank_vault ---");
+    console.log("Initial staked balance to unstake:", currentStaked.toString());
+    while (currentStaked.gt(new BN(0))) {
+      await invest(currentStaked, false);
+      assets = await getBankTotalAssets();
+      currentStaked = assets.stakedValue;
+      console.log("Remaining staked balance after unstake step:", currentStaked.toString());
     }
+    console.log("Bank Liquid SOL (all returned):", assets.liquidValue.toString());
+    console.log("Bank Staked SOL (should be 0):", assets.stakedValue.toString());
+    console.log("Bank Total Assets:", assets.totalAssets.toString());
 
-    // 4. Call the depositToken instruction
-    const tx = await program.methods.depositToken(new BN(1_000_000_000))
-      .accounts({
-        tokenMint: tokenMint,
-        user: user1.publicKey, // Switch to user1 instead of provider
-      })
-      .preInstructions(preInstructions)
-      .signers([user1]) // user1 must sign
-      .rpc();
-    console.log("Deposit token signature: ", tx);
+    console.log("\n--- STEP 11: Withdraw all funds for User 1 and User 2 and compare with formulas ---");
+    const bankAssetData = await program.account.bankAsset.fetch(bankAsset);
+    const totalShares = bankAssetData.totalShares;
+    const finalTotalAssets = assets.liquidValue;
 
-    // 5. Verify the user's reserve
-    const userReserve = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user1.publicKey, tokenMint))
-    console.log("User reserve (Shares): ", userReserve.shares.toString())
+    // Fetch user reserves
+    let user1Reserve = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user1.publicKey));
+    let user2Reserve = await program.account.userReserve.fetch(BANK_APP_ACCOUNTS.userReserve(user2.publicKey));
+
+    // Calculate theoretical withdraw amounts based on pool formula:
+    // Amount = (User Shares * Total Assets) / Total Shares
+    const expectedUser1Received = user1Reserve.shares.mul(finalTotalAssets).div(totalShares);
+    const expectedUser2Received = user2Reserve.shares.mul(finalTotalAssets).div(totalShares);
+
+    console.log("\n--- Theoretical Calculations ---");
+    console.log("Total Pool Shares:", totalShares.toString());
+    console.log("Total Pool Assets:", finalTotalAssets.toString());
+    console.log("Expected User 1 Withdraw Amount:", expectedUser1Received.toString(), "lamports");
+    console.log("Expected User 2 Withdraw Amount:", expectedUser2Received.toString(), "lamports");
+
+    // Perform withdrawals
+    const balanceBeforeWithdraw1 = new BN(await provider.connection.getBalance(user1.publicKey));
+    const tx1 = await withdraw(user1, user1Reserve.shares);
+    console.log("User 1 withdraw tx signature:", tx1);
+    const balanceAfterWithdraw1 = new BN(await provider.connection.getBalance(user1.publicKey));
+
+    const balanceBeforeWithdraw2 = new BN(await provider.connection.getBalance(user2.publicKey));
+    const tx2 = await withdraw(user2, user2Reserve.shares);
+    console.log("User 2 withdraw tx signature:", tx2);
+    const balanceAfterWithdraw2 = new BN(await provider.connection.getBalance(user2.publicKey));
+
+    // Calculate actual change in wallet (excluding tx fee to show clean payout comparison)
+    const actualPayout1 = balanceAfterWithdraw1.sub(balanceBeforeWithdraw1);
+    const actualPayout2 = balanceAfterWithdraw2.sub(balanceBeforeWithdraw2);
+
+    console.log("\n--- Payout Comparison ---");
+    console.log("User 1 Expected Payout:", expectedUser1Received.toString());
+    console.log("User 1 Actual Payout (inc. tx fee):", actualPayout1.toString());
+    console.log("User 2 Expected Payout:", expectedUser2Received.toString());
+    console.log("User 2 Actual Payout (inc. tx fee):", actualPayout2.toString());
   });
 });
