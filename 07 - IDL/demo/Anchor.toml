@@ -1,16 +1,13 @@
 [toolchain]
+package_manager = "yarn"
 
 [features]
 resolution = true
 skip-lint = false
+seeds = true
 
 [programs.devnet]
-bank_app = "357s645XYGZxZsgh2vnbkFT6PVPbLTpDHA3bFNscvxvm"
-staking_app = "9dyWrpJjyAdXbPBVchCDKGn8dbJ8k2AXUzQYS7Q5FZfS"
-
-[programs.localnet]
-bank_app = "357s645XYGZxZsgh2vnbkFT6PVPbLTpDHA3bFNscvxvm"
-staking_app = "9dyWrpJjyAdXbPBVchCDKGn8dbJ8k2AXUzQYS7Q5FZfS"
+demo = "Demo54vM5eg59zRwWui5EQbia2jXcXwmefhupHmHYsST"
 
 [registry]
 url = "https://api.apr.dev"

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use solana_program::sysvar::instructions;
+use anchor_lang::solana_program::{hash::hash, sysvar::instructions};
 
-declare_id!("Your11111111111111111111111111111111111111");
+declare_id!("2aKShZhCd5Xfy2jEiMLsUGfLU4r87EHowf74q2p5nLA2");
 
 #[program]
 pub mod exercise {
@@ -16,14 +16,31 @@ pub mod exercise {
     }
 
     pub fn execute(ctx: Context<Execute>, amount: u64) -> Result<()> {
-        // TODO: Check that previous instruction was `approve`
-        // - Use `instructions::load_current_index_checked` to get the current index
-        // - Ensure there was at least one previous instruction
-        // - Use `instructions::load_instruction_at_checked` to fetch the previous ix
-        // - Verify:
-        //     * previous_ix.program_id == crate::ID
-        //     * first 8 bytes of previous_ix.data match the "approve" discriminator
-        //       (hint: `hash(b"global:approve").to_bytes()[0..8]`)
+        // Check that previous instruction was `approve`
+        let current_index = instructions::load_current_index_checked(&ctx.accounts.instructions)? as usize;
+        require!(current_index > 0, ErrorCode::MustApproveFirst);
+
+        let previous_ix = instructions::load_instruction_at_checked(
+            current_index - 1,
+            &ctx.accounts.instructions,
+        )?;
+
+        // Verify program_id matches
+        require!(
+            previous_ix.program_id == crate::ID,
+            ErrorCode::MustApproveFirst
+        );
+
+        // Verify discriminator matches "approve" (first 8 bytes)
+        let expected_discriminator = hash(b"global:approve").to_bytes()[0..8].to_vec();
+        require!(
+            previous_ix.data.len() >= 8,
+            ErrorCode::MustApproveFirst
+        );
+        require!(
+            previous_ix.data[0..8] == expected_discriminator[0..8],
+            ErrorCode::MustApproveFirst
+        );
 
         msg!("Executing with amount: {}", amount);
         Ok(())
@@ -34,37 +51,84 @@ pub mod exercise {
     pub fn initialize_large_approval_regular(
         ctx: Context<InitializeLargeApprovalRegular>,
     ) -> Result<()> {
-        // TODO:
-        // - Initialize a "regular" large account using `Account<LargeApprovalDataRegular>`
-        // - Set the authority to `ctx.accounts.authority.key()`
-        // - Zero out the approval_history array
+        let approval_data = &mut ctx.accounts.approval_data;
+        approval_data.authority = ctx.accounts.authority.key();
+        approval_data.approval_history = [0; REGULAR_HISTORY_LEN];
         Ok(())
     }
 
     pub fn process_large_approval_regular(ctx: Context<ProcessLargeApprovalRegular>) -> Result<()> {
-        // TODO:
-        // - Get current timestamp from `Clock::get()?`
-        // - Find the first empty slot (value == 0) in approval_history
-        // - Write the timestamp there
+        let timestamp = Clock::get()?.unix_timestamp as u64;
+        let approval_data = &mut ctx.accounts.approval_data;
+        
+        for i in 0..approval_data.approval_history.len() {
+            if approval_data.approval_history[i] == 0 {
+                approval_data.approval_history[i] = timestamp;
+                break;
+            }
+        }
         Ok(())
     }
 
     pub fn initialize_large_approval_zero_copy(
         ctx: Context<InitializeLargeApprovalZeroCopy>,
     ) -> Result<()> {
-        // TODO:
-        // - Use `ctx.accounts.approval_data.load_init()?` to get a zero-copy reference
-        // - Set the authority (as bytes) and zero out the 512-element approval_history array
+        let mut data = ctx.accounts.approval_data.load_init()?;
+        data.authority = ctx.accounts.authority.key().to_bytes();
+        data.approval_history = [0; 512];
         Ok(())
     }
 
     pub fn process_large_approval_zero_copy(
         ctx: Context<ProcessLargeApprovalZeroCopy>,
     ) -> Result<()> {
-        // TODO:
-        // - Similar to the regular version, but using zero-copy:
-        //   `let mut data = ctx.accounts.approval_data.load_mut()?;`
-        // - Use `Clock::get()?` and write the timestamp into the first empty slot
+        let timestamp = Clock::get()?.unix_timestamp as u64;
+        let mut data = ctx.accounts.approval_data.load_mut()?;
+        
+        for i in 0..data.approval_history.len() {
+            if data.approval_history[i] == 0 {
+                data.approval_history[i] = timestamp;
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    // ---------------- Part 3: Multi-Send ----------------
+
+    pub fn multi_send<'info>(
+        ctx: Context<'_, '_, '_, 'info, MultiSend<'info>>,
+        amounts: Vec<u64>,
+    ) -> Result<()> {
+        require!(!amounts.is_empty(), ErrorCode::NoRecipients);
+        require!(amounts.len() <= 10, ErrorCode::TooManyRecipients);
+
+        let sender = &ctx.accounts.sender;
+        let system_program = &ctx.accounts.system_program;
+        let remaining_accounts = ctx.remaining_accounts;
+
+        require!(
+            remaining_accounts.len() == amounts.len(),
+            ErrorCode::NoRecipients
+        );
+
+        for (i, amount) in amounts.iter().enumerate() {
+            let recipient = &remaining_accounts[i];
+            
+            require!(recipient.is_writable, ErrorCode::RecipientNotWritable);
+
+            let transfer_ix = anchor_lang::solana_program::system_instruction::transfer(
+                sender.key,
+                recipient.key,
+                *amount,
+            );
+
+            anchor_lang::solana_program::program::invoke(
+                &transfer_ix,
+                &[sender.to_account_info(), recipient.clone(), system_program.to_account_info()],
+            )?;
+        }
+
         Ok(())
     }
 }
@@ -81,8 +145,7 @@ pub struct Execute<'info> {
     pub authority: Signer<'info>,
 
     /// CHECK: Instructions sysvar
-    // TODO: Add constraint to verify this is the instructions sysvar
-    // Hint: `#[account(address = solana_program::sysvar::instructions::ID)]`
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
     pub instructions: UncheckedAccount<'info>,
 }
 
@@ -94,9 +157,8 @@ pub const REGULAR_HISTORY_LEN: usize = 128;
 
 #[account]
 pub struct LargeApprovalDataRegular {
-    // TODO: Add fields:
-    // - authority: Pubkey
-    // - approval_history: [u64; REGULAR_HISTORY_LEN]
+    pub authority: Pubkey,
+    pub approval_history: [u64; REGULAR_HISTORY_LEN],
 }
 
 #[derive(Accounts)]
@@ -104,10 +166,8 @@ pub struct InitializeLargeApprovalRegular<'info> {
     #[account(
         init,
         payer = authority,
-        // TODO: Set correct space: 8 + size_of::<LargeApprovalDataRegular>()
-        space = 8,
-        // TODO: Choose PDA seeds (e.g. b"approval_regular", authority key)
-        seeds = [],
+        space = 8 + std::mem::size_of::<LargeApprovalDataRegular>(),
+        seeds = [b"approval_regular", authority.key().as_ref()],
         bump
     )]
     pub approval_data: Account<'info, LargeApprovalDataRegular>,
@@ -121,8 +181,7 @@ pub struct InitializeLargeApprovalRegular<'info> {
 pub struct ProcessLargeApprovalRegular<'info> {
     #[account(
         mut,
-        // TODO: Use the same seeds as in InitializeLargeApprovalRegular
-        seeds = [],
+        seeds = [b"approval_regular", authority.key().as_ref()],
         bump
     )]
     pub approval_data: Account<'info, LargeApprovalDataRegular>,
@@ -132,14 +191,11 @@ pub struct ProcessLargeApprovalRegular<'info> {
 
 // ---------------- Part 2: Zero-Copy AccountLoader<T> ----------------
 
-// TODO:
-// - Make this a zero-copy account: `#[account(zero_copy)]`
-// - Add `#[repr(C)]` and derives needed for zero-copy (e.g. Copy, Clone, Default or bytemuck)
-// - Add fields:
-//     * authority: [u8; 32]
-//     * approval_history: [u64; 512]   // full large array
+#[account(zero_copy)]
+#[repr(C)]
 pub struct LargeApprovalData {
-    // TODO
+    pub authority: [u8; 32],
+    pub approval_history: [u64; 512],
 }
 
 #[derive(Accounts)]
@@ -147,14 +203,11 @@ pub struct InitializeLargeApprovalZeroCopy<'info> {
     #[account(
         init,
         payer = authority,
-        // TODO: Set correct space: 8 + size_of::<LargeApprovalData>()
-        space = 8,
-        // TODO: Choose PDA seeds (e.g. b"approval_zero_copy", authority key)
-        seeds = [],
+        space = 8 + std::mem::size_of::<LargeApprovalData>(),
+        seeds = [b"approval_zero_copy", authority.key().as_ref()],
         bump
     )]
-    // TODO: Use AccountLoader<LargeApprovalData> instead of Account<...>
-    pub approval_data: UncheckedAccount<'info>,
+    pub approval_data: AccountLoader<'info, LargeApprovalData>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -165,18 +218,16 @@ pub struct InitializeLargeApprovalZeroCopy<'info> {
 pub struct ProcessLargeApprovalZeroCopy<'info> {
     #[account(
         mut,
-        // TODO: Use the same seeds as in InitializeLargeApprovalZeroCopy
-        seeds = [],
+        seeds = [b"approval_zero_copy", authority.key().as_ref()],
         bump
     )]
-    // TODO: Use AccountLoader<LargeApprovalData>
-    pub approval_data: UncheckedAccount<'info>,
+    pub approval_data: AccountLoader<'info, LargeApprovalData>,
 
     pub authority: Signer<'info>,
 }
 
-// ---------------- Part 3 Accounts ----------------
- 
+// ---------------- Part 3: Multi-Send Accounts ----------------
+
 #[derive(Accounts)]
 pub struct MultiSend<'info> {
     /// Người gửi — bị debit lamport

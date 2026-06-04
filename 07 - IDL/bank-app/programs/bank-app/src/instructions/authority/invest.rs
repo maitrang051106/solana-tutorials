@@ -1,11 +1,17 @@
 use anchor_lang::{prelude::*, system_program};
+use anchor_lang::solana_program::{
+    instruction::{AccountMeta, Instruction},
+    program::invoke_signed,
+};
 
 use crate::{
     constant::{BANK_INFO_SEED, BANK_VAULT_SEED},
     error::BankAppError,
     state::BankInfo,
 };
-use staking_app::{cpi, program::StakingApp};
+use staking_app_cpi::{cpi, program::StakingApp};
+
+const STAKE_DISCRIMINATOR: [u8; 8] = [206, 176, 202, 18, 200, 209, 179, 108];
 
 #[derive(Accounts)]
 pub struct Invest<'info> {
@@ -59,6 +65,44 @@ impl<'info> Invest<'info> {
             ),
             amount,
             is_stake,
+        )?;
+
+        Ok(())
+    }
+
+    pub fn process_raw(ctx: Context<Invest>, amount: u64, is_stake: bool) -> Result<()> {
+        if ctx.accounts.bank_info.is_paused {
+            return Err(BankAppError::BankAppPaused.into());
+        }
+
+        let mut data = Vec::with_capacity(17);
+        data.extend_from_slice(&STAKE_DISCRIMINATOR);
+        data.extend_from_slice(&amount.to_le_bytes());
+        data.push(u8::from(is_stake));
+
+        let instruction = Instruction {
+            program_id: ctx.accounts.staking_program.key(),
+            accounts: vec![
+                AccountMeta::new(ctx.accounts.staking_vault.key(), false),
+                AccountMeta::new(ctx.accounts.staking_info.key(), false),
+                AccountMeta::new(ctx.accounts.bank_vault.key(), true),
+                AccountMeta::new(ctx.accounts.authority.key(), true),
+                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
+            ],
+            data,
+        };
+
+        let invest_vault_seeds: &[&[&[u8]]] = &[&[BANK_VAULT_SEED, &[ctx.accounts.bank_info.bump]]];
+        invoke_signed(
+            &instruction,
+            &[
+                ctx.accounts.staking_vault.to_account_info(),
+                ctx.accounts.staking_info.to_account_info(),
+                ctx.accounts.bank_vault.to_account_info(),
+                ctx.accounts.authority.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+            invest_vault_seeds,
         )?;
 
         Ok(())

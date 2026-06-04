@@ -1,0 +1,21 @@
+[package]
+name = "staking-app-cpi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "staking_app_cpi"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+custom-heap = []
+custom-panic = []
+anchor-debug = []
+
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-gen = "0.4.1"

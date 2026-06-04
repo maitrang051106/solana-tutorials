@@ -40,6 +40,17 @@ describe("bank-app", () => {
     }
   }
 
+  const STAKING_APP_ACCOUNTS = {
+    stakingVault: PublicKey.findProgramAddressSync(
+      [Buffer.from("STAKING_VAULT")],
+      stakingProgram.programId
+    )[0],
+    userInfo: PublicKey.findProgramAddressSync(
+      [Buffer.from("USER_INFO"), BANK_APP_ACCOUNTS.bankVault.toBuffer()],
+      stakingProgram.programId
+    )[0],
+  }
+
   it("Is initialized!", async () => {
     try {
       const bankInfo = await program.account.bankInfo.fetch(BANK_APP_ACCOUNTS.bankInfo)
@@ -71,7 +82,49 @@ describe("bank-app", () => {
     console.log("User reserve: ", userReserve.depositedAmount.toString())
   });
 
-  it("Is deposited token!", async () => {
+  it("Invests through the CPI crate generated from IDL!", async () => {
+    const before = await provider.connection.getBalance(STAKING_APP_ACCOUNTS.stakingVault);
+
+    const tx = await program.methods.invest(new BN(1_000), true)
+      .accounts({
+        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
+        bankVault: BANK_APP_ACCOUNTS.bankVault,
+        stakingVault: STAKING_APP_ACCOUNTS.stakingVault,
+        stakingInfo: STAKING_APP_ACCOUNTS.userInfo,
+        stakingProgram: stakingProgram.programId,
+        authority: provider.publicKey,
+        systemProgram: SystemProgram.programId,
+      }).rpc();
+    console.log("Invest CPI signature: ", tx);
+
+    const after = await provider.connection.getBalance(STAKING_APP_ACCOUNTS.stakingVault);
+    if (after < before + 1_000) {
+      throw new Error("staking vault balance did not increase after CPI invest");
+    }
+  });
+
+  it("Invests through a raw instruction built from IDL!", async () => {
+    const before = await provider.connection.getBalance(STAKING_APP_ACCOUNTS.stakingVault);
+
+    const tx = await program.methods.investRaw(new BN(1_000), true)
+      .accounts({
+        bankInfo: BANK_APP_ACCOUNTS.bankInfo,
+        bankVault: BANK_APP_ACCOUNTS.bankVault,
+        stakingVault: STAKING_APP_ACCOUNTS.stakingVault,
+        stakingInfo: STAKING_APP_ACCOUNTS.userInfo,
+        stakingProgram: stakingProgram.programId,
+        authority: provider.publicKey,
+        systemProgram: SystemProgram.programId,
+      }).rpc();
+    console.log("Invest raw signature: ", tx);
+
+    const after = await provider.connection.getBalance(STAKING_APP_ACCOUNTS.stakingVault);
+    if (after < before + 1_000) {
+      throw new Error("staking vault balance did not increase after raw invest");
+    }
+  });
+
+  it.skip("Is deposited token!", async () => {
     let tokenMint = new PublicKey("") // Điền token mint của bạn vào
     let userAta = getAssociatedTokenAddressSync(tokenMint, provider.publicKey)
     let bankAta = getAssociatedTokenAddressSync(tokenMint, BANK_APP_ACCOUNTS.bankVault, true)
