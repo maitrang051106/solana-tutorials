@@ -1,4 +1,5 @@
 [toolchain]
+anchor_version = "0.31.1"
 package_manager = "yarn"
 
 [features]
@@ -6,13 +7,16 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-instruction_ordering = "2aKShZhCd5Xfy2jEiMLsUGfLU4r87EHowf74q2p5nLA2"
+ticket_registry = "9UDzQZ1pE1SVWKwNvc8tsMSQKVNp2jh1kxAY81b8Fo79"
+
+[programs.devnet]
+ticket_registry = "9UDzQZ1pE1SVWKwNvc8tsMSQKVNp2jh1kxAY81b8Fo79"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
